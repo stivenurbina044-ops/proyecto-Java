@@ -4,6 +4,7 @@ import com.littlehorizons.erp.dao.SubjectRegistrationDao;
 import com.littlehorizons.erp.dao.AcademicRecordDao;
 import com.littlehorizons.erp.service.AcademicAverageService;
 import com.littlehorizons.erp.view.ConsoleView;
+import com.littlehorizons.erp.util.ErrorLogger;
 import java.sql.SQLException;
 
 public final class AcademicController {
@@ -44,6 +45,7 @@ public final class AcademicController {
             } catch (IllegalArgumentException exception) {
                 view.showError(exception.getMessage());
             } catch (SQLException exception) {
+                ErrorLogger.log("AcademicController: database operation failed", exception);
                 view.showError(exception.getErrorCode() == 1062
                         ? (option == 4 ? "Ya existe una calificación para esa materia, año y período."
                                 : "El estudiante ya tiene una inscripción en esa materia, año y período.")

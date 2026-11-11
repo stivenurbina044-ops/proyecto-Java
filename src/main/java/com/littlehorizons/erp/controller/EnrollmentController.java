@@ -3,6 +3,7 @@ package com.littlehorizons.erp.controller;
 import com.littlehorizons.erp.dao.EnrollmentDao;
 import com.littlehorizons.erp.dao.GradeDao;
 import com.littlehorizons.erp.view.ConsoleView;
+import com.littlehorizons.erp.util.ErrorLogger;
 import java.sql.SQLException;
 
 public final class EnrollmentController {
@@ -40,6 +41,7 @@ public final class EnrollmentController {
         } catch (IllegalArgumentException exception) {
             view.showError(exception.getMessage());
         } catch (SQLException exception) {
+            ErrorLogger.log("EnrollmentController: database operation failed", exception);
             String message = switch (exception.getErrorCode()) {
                 case 1062 -> "El estudiante ya tiene una matrícula para ese año académico.";
                 case 1452 -> "El grado seleccionado ya no existe. Vuelve a consultar el catálogo.";
@@ -53,6 +55,7 @@ public final class EnrollmentController {
         try {
             view.showEnrollments(enrollmentDao.findAll());
         } catch (SQLException exception) {
+            ErrorLogger.log("EnrollmentController: database operation failed", exception);
             view.showError("No se pudieron consultar las matrículas. " + exception.getMessage());
         }
     }

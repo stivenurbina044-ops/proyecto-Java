@@ -6,6 +6,7 @@ import com.littlehorizons.erp.dao.StudentDao;
 import com.littlehorizons.erp.service.StudentRegistrationService;
 import com.littlehorizons.erp.view.ConsoleView;
 import com.littlehorizons.erp.view.StudentRegistrationView;
+import com.littlehorizons.erp.util.ErrorLogger;
 import java.sql.SQLException;
 
 public final class MainMenuController {
@@ -85,6 +86,7 @@ public final class MainMenuController {
         } catch (IllegalArgumentException exception) {
             view.showError(exception.getMessage());
         } catch (SQLException exception) {
+            ErrorLogger.log("MainMenuController: database operation failed", exception);
             if (exception.getErrorCode() == 1062) {
                 view.showError("El documento del estudiante ya está registrado.");
             } else {
@@ -102,6 +104,7 @@ public final class MainMenuController {
         try {
             view.showGuardianRegistered(guardianDao.insertGuardian(form.get()));
         } catch (SQLException exception) {
+            ErrorLogger.log("MainMenuController: database operation failed", exception);
             if (exception.getErrorCode() == 1062) {
                 view.showError("El acudiente ya está registrado. Puedes usar su documento al registrar al estudiante.");
             } else {
@@ -114,6 +117,7 @@ public final class MainMenuController {
         try {
             view.showGrades(gradeDao.findAll());
         } catch (SQLException exception) {
+            ErrorLogger.log("MainMenuController: database operation failed", exception);
             view.showError("No se pudo consultar el catálogo de grados. " + exception.getMessage());
         }
     }
@@ -122,6 +126,7 @@ public final class MainMenuController {
         try {
             view.showStudents(studentDao.findAll());
         } catch (SQLException exception) {
+            ErrorLogger.log("MainMenuController: database operation failed", exception);
             view.showError("No se pudo consultar el listado de estudiantes. " + exception.getMessage());
         }
     }
