@@ -25,6 +25,7 @@ public final class ClubView {
                 3. Inscribir estudiante en club
                 4. Consultar clubes de estudiante
                 5. Retirar estudiante de club
+                6. Gestión de Eventos
                 0. Volver al menú principal
                 """);
     }

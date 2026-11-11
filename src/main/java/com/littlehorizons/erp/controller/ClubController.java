@@ -12,18 +12,20 @@ public final class ClubController {
     private final ClubView view;
     private final TeacherView teacherView;
     private final ClubDao clubDao;
+    private final EventController events;
 
-    public ClubController(ConsoleView console, ClubView view, TeacherView teacherView, ClubDao clubDao) {
+    public ClubController(ConsoleView console, ClubView view, TeacherView teacherView, ClubDao clubDao, EventController events) {
         this.console = console;
         this.view = view;
         this.teacherView = teacherView;
         this.clubDao = clubDao;
+        this.events = events;
     }
 
     public void run() {
         while (true) {
             view.showMenu();
-            int option = console.readMenuOption(0, 5).orElse(0);
+            int option = console.readMenuOption(0, 6).orElse(0);
             if (option == 0) {
                 return;
             }
@@ -34,6 +36,7 @@ public final class ClubController {
                     case 3 -> enroll();
                     case 4 -> showMemberships();
                     case 5 -> withdraw();
+                    case 6 -> events.run();
                     default -> { }
                 }
             } catch (IllegalArgumentException exception) {
