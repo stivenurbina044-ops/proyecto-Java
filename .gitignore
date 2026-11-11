@@ -1,0 +1,8 @@
+/target/
+/.env
+/error_log.txt
+/facturas/
+
+/.idea/
+*.iml
+/out/
