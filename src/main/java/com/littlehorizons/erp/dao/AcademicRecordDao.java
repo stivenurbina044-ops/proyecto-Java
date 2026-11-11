@@ -22,6 +22,7 @@ public final class AcademicRecordDao {
             WHERE e.numero_documento = ? AND i.`año_academico` = ?
               AND (? = 'Final' OR i.periodo_academico = ?)
               AND i.estado IN ('Activa', 'Completada') AND p.estado = 'Activo'
+              AND p.fecha_contratacion <= CURRENT_DATE
             """;
 
     public List<GradingOption> findGradingOptions(String document, int year, String period)
