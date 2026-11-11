@@ -18,13 +18,15 @@ public final class MainMenuController {
     private final EnrollmentController enrollment;
     private final AcademicController academic;
     private final TeacherController teachers;
+    private final ClubController clubs;
 
     private final StudentRegistrationView registrationView;
     private final StudentRegistrationService registration;
 
     public MainMenuController(ConsoleView view, StudentDao studentDao, GuardianDao guardianDao, GradeDao gradeDao,
                               StudentRegistrationView registrationView, StudentRegistrationService registration,
-                              EnrollmentController enrollment, AcademicController academic, TeacherController teachers) {
+                              EnrollmentController enrollment, AcademicController academic, TeacherController teachers,
+                              ClubController clubs) {
         this.view = view;
         this.studentDao = studentDao;
         this.guardianDao = guardianDao;
@@ -32,6 +34,7 @@ public final class MainMenuController {
         this.enrollment = enrollment;
         this.academic = academic;
         this.teachers = teachers;
+        this.clubs = clubs;
         this.registrationView = registrationView;
         this.registration = registration;
     }
@@ -50,7 +53,8 @@ public final class MainMenuController {
                 academic.run();
             } else if (option == 3) {
                 teachers.run();
-
+            } else if (option == 4) {
+                clubs.run();
 
             } else {
                 view.showModulePending();
