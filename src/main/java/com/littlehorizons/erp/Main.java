@@ -20,6 +20,9 @@ import com.littlehorizons.erp.dao.ClassScheduleDao;
 import com.littlehorizons.erp.dao.TeacherAssignmentDao;
 import com.littlehorizons.erp.view.TeacherView;
 import java.util.Scanner;
+import com.littlehorizons.erp.controller.AttendanceController;
+import com.littlehorizons.erp.dao.AttendanceDao;
+import com.littlehorizons.erp.view.AttendanceView;
 
 public final class Main {
     public static void main(String[] args) {
@@ -32,8 +35,9 @@ public final class Main {
             var registrationView = new StudentRegistrationView(input, System.out);
             GradeDao gradeDao = new GradeDao();
             var enrollment = new EnrollmentController(view, new EnrollmentDao(), gradeDao);
+            var attendance = new AttendanceController(view, new AttendanceView(input, System.out), new AttendanceDao());
             var academic = new AcademicController(view, new SubjectRegistrationDao(),
-                    new AcademicRecordDao(), new AcademicAverageService());
+                    new AcademicRecordDao(), new AcademicAverageService(), attendance);
             var teachers = new TeacherController(view, new TeacherView(input, System.out), new TeacherDao(), new TeacherAssignmentDao(), new ClassScheduleDao());
             new MainMenuController(view, studentDao, guardianDao, gradeDao,
                     registrationView, registration, enrollment, academic, teachers).run();

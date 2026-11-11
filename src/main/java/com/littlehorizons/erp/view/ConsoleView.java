@@ -162,6 +162,9 @@ public final class ConsoleView {
                 2. Consultar inscripciones de estudiante
                 3. Consultar historial de notas y promedios
                 4. Registrar calificación
+                5. Registrar asistencia
+                6. Consultar historial de asistencia
+                7. Reporte semanal de inasistencias
                 0. Volver al menú principal
                 """);
     }

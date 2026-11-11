@@ -13,24 +13,33 @@ public final class AcademicController {
 
     private final AcademicRecordDao recordDao;
     private final AcademicAverageService averageService;
+    private final AttendanceController attendance;
 
     public AcademicController(ConsoleView view, SubjectRegistrationDao registrationDao,
-                              AcademicRecordDao recordDao, AcademicAverageService averageService) {
+                              AcademicRecordDao recordDao, AcademicAverageService averageService,
+                              AttendanceController attendance) {
         this.view = view;
         this.registrationDao = registrationDao;
         this.recordDao = recordDao;
         this.averageService = averageService;
+        this.attendance = attendance;
     }
 
     public void run() {
         while (true) {
             view.showAcademicMenu();
-            int option = view.readMenuOption(0, 4).orElse(0);
+            int option = view.readMenuOption(0, 7).orElse(0);
             if (option == 0) {
                 return;
             }
             try {
-                if (option == 4) {
+                if (option == 7) {
+                    attendance.showWeeklyReport();
+                } else if (option == 5) {
+                    attendance.register();
+                } else if (option == 6) {
+                    attendance.showHistory();
+                } else if (option == 4) {
                     registerGrade();
                 } else if (option == 1) {
                     register();
@@ -47,7 +56,8 @@ public final class AcademicController {
             } catch (SQLException exception) {
                 ErrorLogger.log("AcademicController: database operation failed", exception);
                 view.showError(exception.getErrorCode() == 1062
-                        ? (option == 4 ? "Ya existe una calificación para esa materia, año y período."
+                        ? (option == 5 ? "Ya existe una asistencia para ese estudiante, materia y fecha."
+                                : option == 4 ? "Ya existe una calificación para esa materia, año y período."
                                 : "El estudiante ya tiene una inscripción en esa materia, año y período.")
                         : "No se pudo completar la operación académica. " + exception.getMessage());
             }
@@ -69,7 +79,7 @@ public final class AcademicController {
         }
         var options = recordDao.findGradingOptions(document.get(), year.getAsInt(), period.get());
         if (options.isEmpty()) {
-            view.showError("No hay materias calificables. Revisa la inscripción, el año, el período y la asignación de un profesor activo a la misma sección.");
+            view.showError("No hay materias calificables. Revisa la inscripción, el año, el período y la asignación de un profesor activo, cuya contratación ya haya iniciado, a la misma sección.");
             return;
         }
         var option = view.readGradingOption(options);
