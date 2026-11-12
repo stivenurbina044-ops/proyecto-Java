@@ -21,6 +21,7 @@ public final class MainMenuController {
     private final ClubController clubs;
     private final ResourceController resources;
     private final FinanceController finance;
+    private final ReportController reports;
 
     private final StudentRegistrationView registrationView;
     private final StudentRegistrationService registration;
@@ -28,7 +29,8 @@ public final class MainMenuController {
     public MainMenuController(ConsoleView view, StudentDao studentDao, GuardianDao guardianDao, GradeDao gradeDao,
                               StudentRegistrationView registrationView, StudentRegistrationService registration,
                               EnrollmentController enrollment, AcademicController academic, TeacherController teachers,
-                              ClubController clubs, ResourceController resources, FinanceController finance) {
+                              ClubController clubs, ResourceController resources, FinanceController finance,
+                              ReportController reports) {
         this.view = view;
         this.studentDao = studentDao;
         this.guardianDao = guardianDao;
@@ -39,6 +41,7 @@ public final class MainMenuController {
         this.clubs = clubs;
         this.resources = resources;
         this.finance = finance;
+        this.reports = reports;
         this.registrationView = registrationView;
         this.registration = registration;
     }
@@ -63,7 +66,8 @@ public final class MainMenuController {
                 finance.run();
             } else if (option == 6) {
                 resources.run();
-
+            } else if (option == 7) {
+                reports.run();
             } else {
                 view.showModulePending();
             }
