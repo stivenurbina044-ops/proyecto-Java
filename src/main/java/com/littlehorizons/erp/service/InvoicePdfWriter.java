@@ -8,7 +8,8 @@ import io.nayuki.qrcodegen.QrCode;
 import java.math.RoundingMode;
 import java.util.Locale;
 
-public class InvoicePdfWriter {
+public class InvoicePdfWriter implements InvoiceDocumentWriter {
+    @Override
     public byte[] render(Invoice invoice, InvoicePayment payment, SchoolBillingDetails school) {
         PdfDocument pdf = new PdfDocument();
         pdf.line("LITTLE HORIZONS", 22, true);

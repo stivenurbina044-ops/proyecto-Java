@@ -18,9 +18,9 @@ import java.util.UUID;
 
 public final class InvoiceService {
     private final InvoiceDao invoiceDao;
-    private final InvoicePdfWriter writer;
+    private final InvoiceDocumentWriter writer;
 
-    public InvoiceService(InvoiceDao invoiceDao, InvoicePdfWriter writer) {
+    public InvoiceService(InvoiceDao invoiceDao, InvoiceDocumentWriter writer) {
         this.invoiceDao = invoiceDao;
         this.writer = writer;
     }

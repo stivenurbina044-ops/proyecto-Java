@@ -4,6 +4,7 @@ import com.littlehorizons.erp.dao.InvoiceDao;
 import com.littlehorizons.erp.model.Invoice;
 import com.littlehorizons.erp.model.InvoicePayment;
 import com.littlehorizons.erp.service.InvoicePdfWriter;
+import com.littlehorizons.erp.service.InvoiceDocumentWriter;
 import com.littlehorizons.erp.service.InvoiceService;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -55,7 +56,8 @@ public final class InvoiceGenerationCheck {
         }
     }
 
-    private static final class CountingWriter extends InvoicePdfWriter {
+    private static final class CountingWriter implements InvoiceDocumentWriter {
+        private final InvoicePdfWriter delegate = new InvoicePdfWriter();
         private int renders;
         private boolean failRender;
 
@@ -66,7 +68,7 @@ public final class InvoiceGenerationCheck {
             if (failRender) {
                 throw new IllegalStateException("Injected renderer failure");
             }
-            return super.render(invoice, payment, school);
+            return delegate.render(invoice, payment, school);
         }
     }
 
