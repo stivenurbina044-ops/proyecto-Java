@@ -34,6 +34,12 @@ public final class FinanceView {
                 4. Consultar pagos de estudiante
                 5. Consultar pagos realizados por acudiente
                 6. Generar o consultar factura PDF de pago
+                7. Configurar tarifa personalizada
+                8. Consultar tarifas de estudiante
+                9. Crear cobro con vencimiento
+                10. Consultar cobros y saldos de estudiante
+                11. Aplicar pago existente a cobro
+                12. Reporte de cobros pendientes por más de un mes
                 0. Volver al menú principal
                 """);
     }
@@ -196,6 +202,10 @@ public final class FinanceView {
 
     public void showSelectionPrompt(String entity) {
         output.println("Selecciona el ID de " + entity + " del listado. Usa 0 para volver.");
+    }
+
+    public void showPaymentAllocationReminder() {
+        output.println("Si este pago cubre un cobro registrado, aplícalo desde la opción 11 para reducir su saldo.");
     }
 
     public void showInvoice(Invoice invoice) {

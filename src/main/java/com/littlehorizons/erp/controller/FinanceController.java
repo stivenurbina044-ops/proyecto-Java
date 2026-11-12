@@ -20,22 +20,24 @@ public final class FinanceController {
     private final PaymentConceptDao conceptDao;
     private final PaymentDao paymentDao;
     private final InvoiceService invoices;
+    private final StudentBillingController billing;
     private final PaymentSummaryService summary;
 
     public FinanceController(ConsoleView console, FinanceView view, PaymentConceptDao conceptDao, PaymentDao paymentDao, InvoiceService invoices,
-                             PaymentSummaryService summary) {
+                             StudentBillingController billing, PaymentSummaryService summary) {
         this.console = console;
         this.view = view;
         this.conceptDao = conceptDao;
         this.paymentDao = paymentDao;
         this.invoices = invoices;
+        this.billing = billing;
         this.summary = summary;
     }
 
     public void run() {
         while (true) {
             view.showMenu();
-            int option = console.readMenuOption(0, 6).orElse(0);
+            int option = console.readMenuOption(0, 12).orElse(0);
             if (option == 0) {
                 return;
             }
@@ -47,6 +49,12 @@ public final class FinanceController {
                     case 4 -> showStudentHistory();
                     case 5 -> showGuardianHistory();
                     case 6 -> generateInvoiceForExistingPayment();
+                    case 7 -> billing.setRate();
+                    case 8 -> billing.showRates();
+                    case 9 -> billing.createCharge();
+                    case 10 -> billing.showCharges();
+                    case 11 -> billing.applyPayment();
+                    case 12 -> billing.showOverdue();
                     default -> { }
                 }
             } catch (IllegalArgumentException exception) {
@@ -54,7 +62,10 @@ public final class FinanceController {
             } catch (SQLException exception) {
                 ErrorLogger.log("FinanceController: database operation failed", exception);
                 console.showError(exception.getErrorCode() == 1062
-                        ? (option == 2 ? "Ya existe un concepto con ese código." : "Ya existe un pago con ese número de recibo.")
+                        ? (option == 2 ? "Ya existe un concepto con ese código."
+                                : option == 9 ? "Ya existe ese cobro para el estudiante, concepto, año y referencia."
+                                : option == 11 ? "El pago ya está aplicado a un cobro."
+                                : "Ya existe un pago con ese número de recibo.")
                         : "No se pudo completar la operación financiera. " + exception.getMessage());
             }
         }
@@ -85,6 +96,7 @@ public final class FinanceController {
             int paymentId = paymentDao.insert(document.get(), guardian.get().id(), concept.get().id(), form.get());
             view.showSuccess("Pago registrado", paymentId);
             generateInvoice(paymentId);
+            view.showPaymentAllocationReminder();
         }
     }
 

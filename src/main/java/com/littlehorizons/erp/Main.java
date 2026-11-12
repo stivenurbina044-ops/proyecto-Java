@@ -20,7 +20,10 @@ import com.littlehorizons.erp.dao.ClassScheduleDao;
 import com.littlehorizons.erp.dao.TeacherAssignmentDao;
 import com.littlehorizons.erp.view.TeacherView;
 import java.util.Scanner;
+import com.littlehorizons.erp.controller.StudentBillingController;
+import com.littlehorizons.erp.dao.StudentBillingDao;
 import com.littlehorizons.erp.service.PaymentSummaryService;
+import com.littlehorizons.erp.view.StudentBillingView;
 import com.littlehorizons.erp.dao.InvoiceDao;
 import com.littlehorizons.erp.service.InvoiceService;
 import com.littlehorizons.erp.service.InvoicePdfWriter;
@@ -65,9 +68,11 @@ public final class Main {
                     new ResourceDao(), new ResourceLoanDao());
             var financeView = new FinanceView(input, System.out);
             var summary = new PaymentSummaryService();
+            var billing = new StudentBillingController(view, financeView, new StudentBillingView(input, System.out),
+                    new PaymentConceptDao(), new PaymentDao(), new StudentBillingDao(), summary);
             var finance = new FinanceController(view, financeView,
                     new PaymentConceptDao(), new PaymentDao(), new InvoiceService(new InvoiceDao(), new InvoicePdfWriter()),
-                    summary);
+                    billing, summary);
             new MainMenuController(view, studentDao, guardianDao, gradeDao,
                     registrationView, registration, enrollment, academic, teachers, clubs, resources, finance).run();
         }
