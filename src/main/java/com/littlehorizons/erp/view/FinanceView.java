@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.view;
 
 import com.littlehorizons.erp.model.Payment;
+import com.littlehorizons.erp.model.Invoice;
 import com.littlehorizons.erp.model.PaymentConcept;
 import com.littlehorizons.erp.model.PaymentConceptRegistration;
 import com.littlehorizons.erp.model.PaymentGuardian;
@@ -32,6 +33,7 @@ public final class FinanceView {
                 3. Registrar pago
                 4. Consultar pagos de estudiante
                 5. Consultar pagos realizados por acudiente
+                6. Generar o consultar factura PDF de pago
                 0. Volver al menú principal
                 """);
     }
@@ -194,6 +196,11 @@ public final class FinanceView {
 
     public void showSelectionPrompt(String entity) {
         output.println("Selecciona el ID de " + entity + " del listado. Usa 0 para volver.");
+    }
+
+    public void showInvoice(Invoice invoice) {
+        output.println("Factura académica: " + invoice.number());
+        output.println("PDF guardado en: " + invoice.filePath());
     }
 
     public void showSuccess(String operation, int id) {

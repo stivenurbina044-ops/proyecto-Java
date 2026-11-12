@@ -8,6 +8,8 @@ import com.littlehorizons.erp.util.ErrorLogger;
 import com.littlehorizons.erp.view.ConsoleView;
 import com.littlehorizons.erp.view.FinanceView;
 import java.sql.SQLException;
+import java.io.IOException;
+import com.littlehorizons.erp.service.InvoiceService;
 import com.littlehorizons.erp.service.PaymentSummaryService;
 import java.util.List;
 import java.util.Optional;
@@ -17,20 +19,23 @@ public final class FinanceController {
     private final FinanceView view;
     private final PaymentConceptDao conceptDao;
     private final PaymentDao paymentDao;
+    private final InvoiceService invoices;
     private final PaymentSummaryService summary;
 
-    public FinanceController(ConsoleView console, FinanceView view, PaymentConceptDao conceptDao, PaymentDao paymentDao, PaymentSummaryService summary) {
+    public FinanceController(ConsoleView console, FinanceView view, PaymentConceptDao conceptDao, PaymentDao paymentDao, InvoiceService invoices,
+                             PaymentSummaryService summary) {
         this.console = console;
         this.view = view;
         this.conceptDao = conceptDao;
         this.paymentDao = paymentDao;
+        this.invoices = invoices;
         this.summary = summary;
     }
 
     public void run() {
         while (true) {
             view.showMenu();
-            int option = console.readMenuOption(0, 5).orElse(0);
+            int option = console.readMenuOption(0, 6).orElse(0);
             if (option == 0) {
                 return;
             }
@@ -41,6 +46,7 @@ public final class FinanceController {
                     case 3 -> registerPayment();
                     case 4 -> showStudentHistory();
                     case 5 -> showGuardianHistory();
+                    case 6 -> generateInvoiceForExistingPayment();
                     default -> { }
                 }
             } catch (IllegalArgumentException exception) {
@@ -78,6 +84,43 @@ public final class FinanceController {
         if (form.isPresent() && view.confirmPayment(document.get(), guardian.get(), concept.get(), form.get())) {
             int paymentId = paymentDao.insert(document.get(), guardian.get().id(), concept.get().id(), form.get());
             view.showSuccess("Pago registrado", paymentId);
+            generateInvoice(paymentId);
+        }
+    }
+
+    private void generateInvoiceForExistingPayment() throws SQLException {
+        var document = console.readStudentDocument();
+        if (document.isEmpty()) {
+            return;
+        }
+        var payments = paymentDao.findByStudent(document.get());
+        view.showPayments(payments, summary.total(payments));
+        if (payments.isEmpty()) {
+            return;
+        }
+        while (true) {
+            view.showSelectionPrompt("pago para generar o recuperar su factura");
+            var id = console.readMenuOption(0, Integer.MAX_VALUE);
+            if (id.isEmpty() || id.getAsInt() == 0) {
+                return;
+            }
+            if (payments.stream().noneMatch(payment -> payment.id() == id.getAsInt())) {
+                console.showError("Selecciona un pago del listado.");
+                continue;
+            }
+            generateInvoice(id.getAsInt());
+            return;
+        }
+    }
+
+    private void generateInvoice(int paymentId) {
+        try {
+            var invoice = invoices.generate(paymentId);
+            view.showInvoice(invoice);
+        } catch (SQLException | IOException | RuntimeException exception) {
+            ErrorLogger.log("FinanceController: invoice generation failed for payment " + paymentId, exception);
+            console.showError("El pago " + paymentId + " ya está guardado, pero no se pudo obtener su PDF. "
+                    + "Usa la opción 6 para reintentar sin registrar otro pago. " + exception.getMessage());
         }
     }
 
