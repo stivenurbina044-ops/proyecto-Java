@@ -117,3 +117,69 @@ UNION ALL
 SELECT 'Profesor', id_prestamo, id_recurso, id_profesor,
        fecha_prestamo, fecha_devolucion_esperada, fecha_devolucion_real, estado_prestamo
 FROM prestamos_profesor;
+
+-- Conceptos y pagos registrados.
+SELECT id_concepto, codigo_concepto, nombre_concepto, monto_base, es_recurrente, esta_activo
+FROM conceptos_pago ORDER BY id_concepto;
+
+SELECT p.id_pago, e.numero_documento AS documento_estudiante,
+       a.numero_documento AS documento_acudiente, c.nombre_concepto,
+       p.monto_pagado, p.fecha_pago, p.metodo_pago, p.numero_recibo,
+       p.año_academico, p.periodo_academico, p.notas
+FROM pagos p
+JOIN estudiantes e ON e.id_estudiante = p.id_estudiante
+LEFT JOIN acudientes a ON a.id_acudiente = p.id_acudiente
+JOIN conceptos_pago c ON c.id_concepto = p.id_concepto
+ORDER BY p.id_pago DESC;
+
+-- Facturas PDF académicas asociadas a pagos.
+SELECT id_factura, numero_factura, id_pago, fecha_emision, cufe,
+       nombre_archivo_pdf, ruta_archivo
+FROM facturas
+ORDER BY id_factura DESC;
+
+-- El resultado debería estar vacío: varias facturas para un mismo pago.
+SELECT id_pago, COUNT(*) AS total
+FROM facturas
+GROUP BY id_pago
+HAVING COUNT(*) > 1;
+
+-- Tarifas personalizadas por estudiante y año.
+SELECT e.numero_documento, c.nombre_concepto, t.año_academico, t.monto_personalizado, t.motivo
+FROM tarifas_estudiante t
+JOIN estudiantes e ON e.id_estudiante = t.id_estudiante
+JOIN conceptos_pago c ON c.id_concepto = t.id_concepto
+ORDER BY e.numero_documento, t.año_academico, c.nombre_concepto;
+
+-- Saldo por cobro: solo se descuentan pagos expresamente aplicados.
+SELECT b.id_cobro, e.numero_documento, c.nombre_concepto, b.referencia,
+       b.año_academico, b.periodo_academico, b.monto_cobrado, b.fecha_vencimiento,
+       COALESCE(a.pagado, 0) AS pagado, b.monto_cobrado - COALESCE(a.pagado, 0) AS saldo
+FROM cobros_estudiante b
+JOIN estudiantes e ON e.id_estudiante = b.id_estudiante
+JOIN conceptos_pago c ON c.id_concepto = b.id_concepto
+LEFT JOIN (
+    SELECT ap.id_cobro, SUM(p.monto_pagado) AS pagado
+    FROM aplicaciones_pago ap JOIN pagos p ON p.id_pago = ap.id_pago
+    GROUP BY ap.id_cobro
+) a ON a.id_cobro = b.id_cobro
+ORDER BY b.id_cobro;
+
+-- Pagos todavía no aplicados a cobros: no crear otro pago para aplicarlos.
+SELECT p.id_pago, p.numero_recibo, p.id_estudiante, p.id_concepto,
+       p.monto_pagado, p.año_academico, p.periodo_academico
+FROM pagos p LEFT JOIN aplicaciones_pago ap ON ap.id_pago = p.id_pago
+WHERE ap.id_pago IS NULL
+ORDER BY p.id_pago;
+
+-- Referencia de promedios por grado/año/período, sin tomar faltantes como cero.
+SELECT enrollment.id_grado, r.año_academico, r.periodo_academico,
+       m.codigo_materia, m.nombre_materia, COUNT(*) AS estudiantes_con_nota,
+       ROUND(AVG(r.valor_nota), 1) AS promedio
+FROM registros_academicos r
+JOIN materias m ON m.id_materia = r.id_materia
+JOIN matriculas enrollment ON enrollment.id_estudiante = r.id_estudiante
+     AND enrollment.año_academico = r.año_academico AND enrollment.id_grado = m.id_grado
+GROUP BY enrollment.id_grado, r.año_academico, r.periodo_academico,
+         m.id_materia, m.codigo_materia, m.nombre_materia
+ORDER BY r.año_academico, enrollment.id_grado, m.codigo_materia, r.periodo_academico;

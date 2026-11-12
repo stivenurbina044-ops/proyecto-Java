@@ -255,3 +255,190 @@ No requiere migraciones. El control de exclusividad se aplica desde la aplicaci�
 las escrituras manuales deben respetarlo. Si un recurso tiene préstamos sin cerrar
 incompatibles con su estado, la aplicación rechaza la operación para revisar sus datos.
 El cambio a mantenimiento o baja desde consola queda pendiente.
+
+## Conceptos y pagos
+
+En **5. Gestión Financiera**:
+
+- **1. Listar conceptos de pago**: catálogo completo, incluyendo inactivos, valor
+  base, descripción y recurrencia.
+- **2. Registrar concepto de pago**: código único (20), nombre (100), descripción
+  opcional (1000), valor base no negativo y recurrencia. Inicia activo.
+- **3. Registrar pago**: documento de estudiante, acudiente vinculado, concepto
+  activo, monto realmente recibido, fecha no futura, método, número de recibo
+  obligatorio único (50), año de cuatro cifras, período y notas opcionales (1000).
+  Se muestra un resumen y se pide confirmar antes de guardar. Se admiten pagos de
+  estudiantes retirados para registrar obligaciones anteriores; no se exige matrícula
+  activa. Cualquier acudiente vinculado puede pagar, aunque no sea el responsable
+  financiero principal. El vínculo se vuelve a comprobar al guardar.
+- **4. Consultar pagos de estudiante**: todos sus pagos, incluso de conceptos hoy
+  inactivos, ordenados por fecha e ID descendente, con total calculado mediante Streams.
+- **5. Consultar pagos realizados por acudiente**: pagos en los que figura como
+  pagador, incluyendo varios estudiantes; no incluye pagos de sus hijos hechos por
+  otros acudientes. Conserva el historial aunque después cambien sus vínculos.
+
+Se usa BigDecimal para dinero, con máximo dos decimales y valor máximo 99999999,99
+por registro (DECIMAL(10,2)). La consola acepta coma o punto decimal, sin separadores
+de miles. Los pagos deben ser mayores que cero; el monto base es una referencia y
+no se confunde con el dinero recibido. Los importes diferentes del valor base se
+guardan como pagos, sin inferir descuentos, saldos ni que una obligación esté saldada.
+Se admiten años futuros para pagos anticipados. `/volver` cancela formularios; los
+selectores permiten 0. Los errores JDBC se guardan en error_log.txt. No requiere
+migraciones. Al confirmar el pago se intenta generar su factura PDF académica, como se describe a continuación.
+Las tarifas personalizadas, cobros con vencimiento y aplicaciones de pagos se
+describen en la siguiente ampliación; requieren una migración aditiva.
+
+## Facturas PDF académicas
+
+Cada pago nuevo confirmado intenta crear automáticamente una factura en `facturas/`.
+La consola muestra el consecutivo y la ruta completa al PDF. El archivo contiene
+razón social, NIT y contactos ficticios del colegio, datos del acudiente pagador,
+dirección si está registrada, estudiante, concepto, cantidad 1, valor recibido,
+subtotal, IVA simulado de cero y total en COP. Una factura representa un único pago;
+no agrupa varios pagos ni implica que una obligación haya quedado saldada.
+
+El consecutivo `LH-000001` usa el ID autoincremental de la factura, evitando
+`MAX + 1`. Puede haber saltos si una transacción falla. El CUFE simulado es SHA-384
+de número + NIT + fecha de emisión, con 96 caracteres hexadecimales. El QR legible
+contiene indicador de simulación, número, NIT, emisión, total y CUFE; no enlaza a la
+DIAN. Todos los documentos se identifican como simulaciones académicas. No se
+implementa cálculo tributario real ni validación electrónica.
+
+Los datos ficticios del colegio están en `src/main/resources/school.properties`.
+Se pueden reemplazar propiedades desde un archivo UTF-8 local indicando su ruta
+en la variable de entorno `INVOICE_CONFIG_PATH` de IntelliJ. Las rutas relativas
+se resuelven respecto al directorio de ejecución. La dirección del cliente se
+obtiene de `acudientes.direccion`: si falta, aparece `Sin registrar`, sin inventarla.
+
+El pago queda guardado antes de generar su PDF. Si falla la configuración, el
+archivo o el registro de factura, se muestra el ID del pago y se guarda el error
+en `error_log.txt`. **No repitas el pago**: usa **Gestión Financiera → 6. Generar o
+consultar factura PDF de pago**, introduce el documento y selecciona el pago.
+También permite generar factura para pagos anteriores con un acudiente asociado.
+
+La generación bloquea el pago en una transacción para que dos solicitudes desde
+la aplicación no creen dos facturas del mismo pago. Una factura existente con PDF
+se reutiliza. Si falta el archivo, se regenera conservando ID, número, emisión y
+CUFE; los datos de las personas y pago se leen de su estado actual en la base
+porque el esquema no incluye una copia histórica de esos datos. Si cambió el NIT
+y no coincide con el CUFE guardado, se pide restaurar la configuración original.
+Los PDFs existentes no se sobrescriben. Los nombres tienen ID y UUID para evitar
+colisiones; una generación fallida intenta limpiar los archivos creados.
+
+La tabla del anexo no tiene una restricción única sobre `id_pago`: la exclusividad
+se garantiza mediante el bloqueo desde la aplicación. Si hay varias facturas
+insertadas manualmente para el mismo pago, se rechaza la recuperación para revisar
+esos registros. No necesitas ejecutar migraciones para este flujo.
+
+La creación del PDF usa Java 17 y fuentes estándar Courier, con acentos españoles,
+escape de texto y salto de página cuando hace falta. Caracteres que no existan en
+WinAnsi se sustituyen por `?`. La biblioteca QR de terceros y su licencia MIT se
+identifican en [docs/third_party.md](docs/third_party.md). Los archivos de facturas
+están excluidos de Git. En IntelliJ, recarga Maven si hace falta para incluir
+`src/main/resources` y ejecuta `Main` desde el módulo del proyecto.
+
+### Verificación de facturas
+
+```sh
+bash scripts/check_invoices.sh
+```
+
+El script compila con Java 17 y ejecuta pruebas aisladas con un doble JDBC: PDF,
+CUFE determinista, reintento sin duplicados, recuperación de un archivo eliminado,
+reversión y limpieza tras fallos. No accede a la base de datos del usuario. Si están
+disponibles `pdftotext` y Python 3, comprueba además texto y acentos del PDF.
+La integración con MySQL se verifica registrando un pago desde IntelliJ y
+consultando `facturas` desde `docs/database_checks.sql` en DBeaver.
+
+## Tarifas por estudiante, cobros y saldos
+
+Para una **base existente**, ejecuta una sola vez en DBeaver
+`docs/migrations/002_student_billing.sql`. Añade `tarifas_estudiante`,
+`cobros_estudiante` y `aplicaciones_pago`; no borra datos ni cambia las tablas
+anteriores. Para instalaciones nuevas, esas tablas ya están en `docs/database.sql`:
+no ejecutar ambos scripts sobre la misma instalación. Detener la ejecución al
+primer error; MySQL confirma DDL y no lo revierte con ROLLBACK.
+
+En **Gestión Financiera**:
+
+- **7. Configurar tarifa personalizada**: documento, concepto activo, año, monto
+  no negativo y motivo obligatorio. Actualiza la tarifa del mismo estudiante,
+  concepto y año; cero representa beca completa. No usa porcentajes ni infiere
+  automáticamente descuentos por hermanos. Aplica hasta que se reemplace en ese año.
+- **8. Consultar tarifas de estudiante**: lista valores personalizados y motivos.
+- **9. Crear cobro con vencimiento**: documento, concepto activo, año, período,
+  referencia de cuota (máximo 50) y fecha de vencimiento. Usa la tarifa del año o
+  el valor base si no existe y guarda una copia del monto en el cobro. Cambios
+  posteriores en tarifas o conceptos no alteran cobros emitidos. Se permite
+  vencimiento pasado para registrar obligaciones históricas, previa confirmación.
+  La combinación estudiante/concepto/año/referencia es única. Para pensiones
+  mensuales usa referencias distintas, por ejemplo PENSION-NOVIEMBRE y PENSION-DICIEMBRE.
+  El campo de recurrencia no genera automáticamente cuotas.
+- **10. Consultar cobros y saldos de estudiante**: muestra cobrado, pagos aplicados,
+  saldo, vencimiento y estado calculado mediante `ChargeStatus`: Pendiente,
+  Vencido o Saldado. Un cobro vence el día posterior a su fecha límite. Un cobro
+  de cero está saldado. No excluye estudiantes retirados ni conceptos inactivos.
+- **11. Aplicar pago existente a cobro**: selecciona documento, ID de pago e ID
+  de cobro, y confirma. Deben coincidir estudiante, concepto, año y período.
+  Cada pago se aplica completo a un único cobro; un cobro acepta varios abonos.
+  Rechaza pagos ya aplicados y montos que superen el saldo; no divide pagos ni
+  genera saldos a favor. No modifica el pago original ni genera otra factura.
+- **12. Reporte de cobros pendientes por más de un mes**: cobros con saldo positivo
+  y vencimiento estrictamente anterior a `DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH)`.
+  Usa un mes calendario y la fecha de MySQL, no un umbral fijo de treinta días.
+  Incluye obligaciones de todos los estudiantes y muestra un detalle por cobro.
+
+**Los pagos nuevos y anteriores no se asignan por coincidencia ni por suposición.**
+Registrar un pago y su factura no reduce un saldo hasta aplicar ese pago desde la
+opción 11. La consola lo recuerda tras el registro y en las consultas de cobros.
+Aplicar dos veces un pago está impedido por su clave primaria y por la transacción.
+No se permite eliminar un pago o cobro aplicado mientras exista su vínculo, para
+conservar la relación. La opción de deshacer aplicaciones desde consola queda
+pendiente; no se recalculan deudas modificando pagos directamente en DBeaver.
+
+La aplicación bloquea el pago y el cobro para revisar identidad, aplicaciones previas
+y saldo dentro de la transacción. Ante fallo se revierte la aplicación completa.
+Las validaciones de coincidencia y exceso deben respetarse también en escrituras
+manuales: las claves foráneas por sí solas no comprueban esas reglas entre tablas.
+Los cambios de diseño siguen las clases: enums para estados y cálculo de totales
+en `PaymentSummaryService`, separado de la vista. No hay nuevas librerías.
+
+Pruebas aisladas con Java 17 y un doble JDBC, sin tocar la base del usuario:
+
+```sh
+bash scripts/check_student_billing.sh
+bash scripts/check_invoices.sh
+```
+
+Verifican abonos, liquidación, rechazo de duplicados/excesos/incompatibilidades,
+rollback, estados, formularios y recuperación de facturas. La integración MySQL
+se completa desde IntelliJ después de ejecutar la migración.
+
+## Reportes académicos
+
+En **7. Reportes y Estadísticas**:
+
+- **1. Promedios por materia de estudiante**: documento y año. Calcula la media
+  simple de las notas existentes de I a IV por materia y muestra cuántos períodos
+  tienen nota. La nota Final manual se presenta por separado y no entra de nuevo
+  al promedio. Una materia con solo Final muestra `Sin registrar` para la media
+  de períodos. Las materias sin ninguna nota no aparecen.
+- **2. Promedio del grado por materia y período**: grado, año y período I, II,
+  III, IV o Final. Incluye todas las secciones del grado, con igual peso para cada
+  nota registrada. Muestra el número de estudiantes con nota, no el número total
+  de matriculados. Se usa la matrícula del año consultado y el grado de la materia;
+  no se filtra por estado actual para conservar el historial.
+
+Ambos cálculos usan BigDecimal y redondean a un decimal con HALF_UP. No convierten
+notas faltantes en cero ni mezclan materias con el mismo nombre y distinto ID,
+años o períodos. Los resultados con pocos períodos registrados son promedios
+parciales, no una nota definitiva. La clave única de registros_academicos garantiza
+una nota por estudiante, materia, año y período. No requieren migraciones ni
+escrituras en la base de datos. La vista muestra resultados; el servicio
+AcademicStatisticsService calcula mediante Streams y el DAO ejecuta JDBC.
+
+Pruebas de agrupación, redondeo, separación de Final y manejo de faltantes:
+
+```sh
+bash scripts/check_academic_statistics.sh
+```
