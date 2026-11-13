@@ -59,6 +59,10 @@ Usa una sola de las dos cargas: `docs/database.sql` ya incluye el lote completo.
 
 ### Credenciales
 
+La plantilla [config_example.txt](config_example.txt) contiene las claves necesarias
+sin credenciales reales. Puedes copiarla a `config.txt` y completar tus valores
+como referencia local; `config.txt` está excluido de Git. No subas ese archivo.
+
 Configura estas variables en **Run → Edit Configurations → Main → Environment variables**
 de IntelliJ, con los datos de tu conexión MySQL:
 
@@ -69,7 +73,9 @@ DB_PASSWORD=<contraseña local>
 ```
 
 `DatabaseConnection.open()` lee estas variables. No hay credenciales en el código
-ni carga automática de `.env`. Las credenciales se configuran en el entorno local.
+ni carga automática de `.env` o `config.txt`. Copia los valores de tu configuración
+local a las variables de entorno del IDE; crear `config.txt` por sí solo no configura
+la conexión.
 
 ### Driver JDBC
 
