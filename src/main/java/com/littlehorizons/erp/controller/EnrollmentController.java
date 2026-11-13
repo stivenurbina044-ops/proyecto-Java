@@ -75,6 +75,26 @@ public final class EnrollmentController {
         }
     }
 
+    public void reactivate() {
+        var document = view.readStudentDocument();
+        if (document.isEmpty()) {
+            return;
+        }
+        view.showError("¿Reactivar al estudiante? 1 = confirmar, 0 = cancelar.");
+        if (view.readMenuOption(0, 1).orElse(0) == 0) {
+            return;
+        }
+        try {
+            enrollmentDao.reactivate(document.get());
+            view.showError("Estudiante reactivado. Registra su matrícula para el nuevo año académico.");
+        } catch (IllegalArgumentException exception) {
+            view.showError(exception.getMessage());
+        } catch (SQLException exception) {
+            ErrorLogger.log("EnrollmentController: reactivation failed", exception);
+            view.showError("No se pudo reactivar al estudiante.");
+        }
+    }
+
     public void showAll() {
         try {
             view.showEnrollments(enrollmentDao.findAll());

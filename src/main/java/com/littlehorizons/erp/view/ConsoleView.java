@@ -69,6 +69,9 @@ public final class ConsoleView {
                 6. Consultar matrículas
                 7. Retirar matrícula
                 8. Registrar graduación
+                9. Reactivar estudiante
+                10. Actualizar datos de estudiante
+                11. Actualizar datos de acudiente
                 0. Volver al menú principal
                 """);
     }

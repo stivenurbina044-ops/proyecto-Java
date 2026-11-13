@@ -31,6 +31,7 @@ public final class ResourceView {
                 5. Consultar préstamos
                 6. Registrar devolución
                 7. Consultar préstamos vencidos
+                8. Cambiar estado: disponibilidad, mantenimiento o baja
                 0. Volver al menú principal
                 """);
     }
@@ -149,6 +150,10 @@ public final class ResourceView {
                     loan.loanDate(), loan.expectedReturnDate(),
                     loan.actualReturnDate() == null ? "Pendiente" : loan.actualReturnDate(), displayOptional(loan.notes()));
         }
+    }
+
+    public void showStatusPrompt() {
+        output.println("1. Disponible  2. En Mantenimiento  3. Dado de Baja (definitivo)  0. Volver");
     }
 
     public void showReturnTypePrompt() {

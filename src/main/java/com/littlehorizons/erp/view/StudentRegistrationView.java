@@ -27,6 +27,14 @@ public final class StudentRegistrationView {
     }
 
     public Optional<StudentRegistration> readRegistration() {
+        return readRegistration(false);
+    }
+
+    public Optional<StudentRegistration> readUpdateRegistration() {
+        return readRegistration(true);
+    }
+
+    private Optional<StudentRegistration> readRegistration(boolean update) {
         output.println("Registro con acudiente existente. Escribe /volver para cancelar.");
         try {
             String documentType = readChoice("Tipo de documento (TI, CC, CE, Pasaporte)",
@@ -41,7 +49,7 @@ public final class StudentRegistrationView {
             String address = readRequired("Dirección", 255);
             LocalDate birthDate = readDate("Fecha de nacimiento", null);
             String gender = readChoice("Género (M, F, Otro)", List.of("M", "F", "Otro"));
-            LocalDate admissionDate = readDate("Fecha de ingreso", birthDate);
+            LocalDate admissionDate = update ? birthDate : readDate("Fecha de ingreso", birthDate);
             String guardianDocument = readRequired("Número de documento del acudiente", 20);
             return Optional.of(new StudentRegistration(documentType, documentNumber, firstName,
                     lastName, birthDate, gender, admissionDate, guardianDocument, middleName, secondLastName, address));

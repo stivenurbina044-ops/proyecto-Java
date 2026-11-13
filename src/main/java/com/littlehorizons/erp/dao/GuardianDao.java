@@ -23,6 +23,29 @@ public class GuardianDao {
         }
     }
 
+    public void update(GuardianRegistration guardian) throws SQLException {
+        String sql = """
+                UPDATE acudientes SET primer_nombre = ?, segundo_nombre = ?, primer_apellido = ?,
+                    segundo_apellido = ?, direccion = ?, parentesco = ?, telefono_principal = ?,
+                    es_responsable_financiero = ? WHERE numero_documento = ? AND tipo_documento = ?
+                """;
+        try (var connection = DatabaseConnection.open(); var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, guardian.firstName());
+            statement.setString(2, guardian.middleName());
+            statement.setString(3, guardian.lastName());
+            statement.setString(4, guardian.secondLastName());
+            statement.setString(5, guardian.address());
+            statement.setString(6, guardian.relationship());
+            statement.setString(7, guardian.primaryPhone());
+            statement.setBoolean(8, guardian.financiallyResponsible());
+            statement.setString(9, guardian.documentNumber());
+            statement.setString(10, guardian.documentType());
+            if (statement.executeUpdate() != 1) {
+                throw new IllegalArgumentException("El acudiente no existe con ese documento y tipo, o los datos no cambiaron.");
+            }
+        }
+    }
+
     public int insertGuardian(GuardianRegistration guardian) throws SQLException {
         String sql = """
                 INSERT INTO acudientes (

@@ -29,6 +29,13 @@ public final class StudentRegistrationService {
                 null, null, null));
     }
 
+    public void update(String document, StudentRegistration student) throws SQLException {
+        if (!document.equals(student.documentNumber())) {
+            throw new IllegalArgumentException("El documento del estudiante no se puede cambiar en esta operación.");
+        }
+        studentDao.update(student);
+    }
+
     public int registerWithExistingGuardian(StudentRegistration student) throws SQLException {
         String guardianDocumentNumber = student.guardianDocumentNumber();
         try (var connection = DatabaseConnection.open()) {

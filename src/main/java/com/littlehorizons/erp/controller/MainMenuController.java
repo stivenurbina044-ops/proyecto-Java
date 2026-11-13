@@ -77,7 +77,7 @@ public final class MainMenuController {
     private void runStudentMenu() {
         while (true) {
             view.showStudentMenu();
-            int option = view.readMenuOption(0, 8).orElse(0);
+            int option = view.readMenuOption(0, 11).orElse(0);
             switch (option) {
                 case 1 -> showStudents();
                 case 2 -> registerStudent();
@@ -87,6 +87,9 @@ public final class MainMenuController {
                 case 6 -> enrollment.showAll();
                 case 7 -> enrollment.closeEnrollment(false);
                 case 8 -> enrollment.closeEnrollment(true);
+                case 9 -> enrollment.reactivate();
+                case 10 -> updateStudent();
+                case 11 -> updateGuardian();
                 default -> {
                     return;
                 }
@@ -113,6 +116,45 @@ public final class MainMenuController {
             } else {
                 view.showError("No se pudo registrar al estudiante. " + exception.getMessage());
             }
+        }
+    }
+
+    private void updateStudent() {
+        view.showError("Ingresa el documento actual del estudiante que deseas actualizar.");
+        var document = view.readStudentDocument();
+        if (document.isEmpty()) {
+            return;
+        }
+        view.showError("Completa los datos personales. El documento y acudiente deben coincidir con los existentes; no se cambian los vínculos.");
+        var form = registrationView.readUpdateRegistration();
+        if (form.isEmpty()) {
+            return;
+        }
+        try {
+            registration.update(document.get(), form.get());
+            view.showError("Datos del estudiante actualizados.");
+        } catch (IllegalArgumentException exception) {
+            view.showError(exception.getMessage());
+        } catch (SQLException exception) {
+            ErrorLogger.log("MainMenuController: student update failed", exception);
+            view.showError("No se pudieron actualizar los datos del estudiante.");
+        }
+    }
+
+    private void updateGuardian() {
+        view.showError("Completa los datos del acudiente. Usa su documento actual para identificarlo.");
+        var form = registrationView.readGuardianRegistration();
+        if (form.isEmpty()) {
+            return;
+        }
+        try {
+            guardianDao.update(form.get());
+            view.showError("Datos del acudiente actualizados. Las facturas ya emitidas conservan sus datos originales.");
+        } catch (IllegalArgumentException exception) {
+            view.showError(exception.getMessage());
+        } catch (SQLException exception) {
+            ErrorLogger.log("MainMenuController: guardian update failed", exception);
+            view.showError("No se pudieron actualizar los datos del acudiente.");
         }
     }
 

@@ -50,6 +50,33 @@ public final class StudentDao {
         return students;
     }
 
+    public void update(StudentRegistration student) throws SQLException {
+        String sql = """
+                UPDATE estudiantes e SET primer_nombre = ?, segundo_nombre = ?, primer_apellido = ?,
+                    segundo_apellido = ?, direccion = ?, fecha_nacimiento = ?, genero = ?
+                WHERE e.numero_documento = ? AND e.tipo_documento = ? AND EXISTS (
+                    SELECT 1 FROM estudiante_acudiente link JOIN acudientes a ON a.id_acudiente = link.id_acudiente
+                    WHERE link.id_estudiante = e.id_estudiante AND a.numero_documento = ?)
+                  AND e.fecha_ingreso >= ?
+                """;
+        try (var connection = DatabaseConnection.open(); var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, student.firstName());
+            statement.setString(2, student.middleName());
+            statement.setString(3, student.lastName());
+            statement.setString(4, student.secondLastName());
+            statement.setString(5, student.address());
+            statement.setDate(6, Date.valueOf(student.birthDate()));
+            statement.setString(7, student.gender());
+            statement.setString(8, student.documentNumber());
+            statement.setString(9, student.documentType());
+            statement.setString(10, student.guardianDocumentNumber());
+            statement.setDate(11, Date.valueOf(student.birthDate()));
+            if (statement.executeUpdate() != 1) {
+                throw new IllegalArgumentException("Revisa documento, tipo, acudiente vinculado y nacimiento anterior al ingreso; los datos pueden no haber cambiado.");
+            }
+        }
+    }
+
     public int insertStudent(Connection connection, StudentRegistration student) throws SQLException {
         int id = insertStudent(connection, student.documentType(), student.documentNumber(),
                 student.firstName(), student.lastName(), student.birthDate(), student.gender(), student.admissionDate());

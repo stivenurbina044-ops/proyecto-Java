@@ -47,6 +47,50 @@ public final class ResourceDao {
         return resources;
     }
 
+    public void changeStatus(int resourceId, String status) throws SQLException {
+        if (!List.of("Disponible", "En Mantenimiento", "Dado de Baja").contains(status)) {
+            throw new IllegalArgumentException("Estado del recurso inválido.");
+        }
+        try (var connection = DatabaseConnection.open()) {
+            connection.setAutoCommit(false);
+            try {
+                try (var statement = connection.prepareStatement(
+                        "SELECT estado_recurso FROM recursos WHERE id_recurso = ? FOR UPDATE")) {
+                    statement.setInt(1, resourceId);
+                    try (var result = statement.executeQuery()) {
+                        if (!result.next() || "Prestado".equals(result.getString(1)) || "Dado de Baja".equals(result.getString(1))) {
+                            throw new IllegalArgumentException("El recurso no existe, está prestado o ya fue dado de baja.");
+                        }
+                    }
+                }
+                for (var type : com.littlehorizons.erp.model.BorrowerType.values()) {
+                    try (var statement = connection.prepareStatement("SELECT id_prestamo FROM " + type.loanTable()
+                            + " WHERE id_recurso = ? AND (fecha_devolucion_real IS NULL OR estado_prestamo IN ('Activo', 'Vencido')) FOR UPDATE")) {
+                        statement.setInt(1, resourceId);
+                        try (var result = statement.executeQuery()) {
+                            if (result.next()) {
+                                throw new IllegalArgumentException("El recurso tiene un préstamo sin cerrar.");
+                            }
+                        }
+                    }
+                }
+                try (var statement = connection.prepareStatement("UPDATE recursos SET estado_recurso = ? WHERE id_recurso = ?")) {
+                    statement.setString(1, status);
+                    statement.setInt(2, resourceId);
+                    statement.executeUpdate();
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    exception.addSuppressed(rollbackException);
+                }
+                throw exception;
+            }
+        }
+    }
+
     public int insert(ResourceRegistration resource) throws SQLException {
         String sql = """
                 INSERT INTO recursos (codigo_recurso, nombre_recurso, id_categoria, descripcion,

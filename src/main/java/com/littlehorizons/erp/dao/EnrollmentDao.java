@@ -41,6 +41,17 @@ public final class EnrollmentDao {
         }
     }
 
+    public void reactivate(String document) throws SQLException {
+        try (var connection = DatabaseConnection.open();
+             var statement = connection.prepareStatement(
+                     "UPDATE estudiantes SET estado = 'Activo' WHERE numero_documento = ? AND estado IN ('Retirado', 'Suspendido')")) {
+            statement.setString(1, document);
+            if (statement.executeUpdate() != 1) {
+                throw new IllegalArgumentException("Solo se pueden reactivar estudiantes retirados o suspendidos. La matrícula se registra por separado.");
+            }
+        }
+    }
+
     public void closeEnrollment(String document, int year, boolean graduated) throws SQLException {
         if (year < 1000 || year > 9999) {
             throw new IllegalArgumentException("El año académico debe tener cuatro cifras.");
@@ -57,6 +68,20 @@ public final class EnrollmentDao {
                             throw new IllegalArgumentException("El estudiante no existe.");
                         }
                         studentId = result.getInt(1);
+                    }
+                }
+                if (graduated) {
+                    try (var statement = connection.prepareStatement("""
+                            SELECT id_matricula FROM matriculas
+                            WHERE id_estudiante = ? AND `año_academico` > ? AND estado_matricula = 'Activa' FOR UPDATE
+                            """)) {
+                        statement.setInt(1, studentId);
+                        statement.setInt(2, year);
+                        try (var result = statement.executeQuery()) {
+                            if (result.next()) {
+                                throw new IllegalArgumentException("Cierra las matrículas activas posteriores antes de registrar una graduación histórica.");
+                            }
+                        }
                     }
                 }
                 // Closing the last school grade is required for graduation.
@@ -84,6 +109,24 @@ public final class EnrollmentDao {
                     statement.setInt(2, studentId);
                     statement.setInt(3, year);
                     statement.executeUpdate();
+                }
+                if (graduated) {
+                    try (var statement = connection.prepareStatement("""
+                            UPDATE matriculas SET estado_matricula = 'Completada'
+                            WHERE id_estudiante = ? AND `año_academico` < ? AND estado_matricula = 'Activa'
+                            """)) {
+                        statement.setInt(1, studentId);
+                        statement.setInt(2, year);
+                        statement.executeUpdate();
+                    }
+                    try (var statement = connection.prepareStatement("""
+                            UPDATE inscripciones_materia SET estado = 'Completada'
+                            WHERE id_estudiante = ? AND `año_academico` < ? AND estado = 'Activa'
+                            """)) {
+                        statement.setInt(1, studentId);
+                        statement.setInt(2, year);
+                        statement.executeUpdate();
+                    }
                 }
                 // Historical closures must not deactivate a student enrolled in another year.
                 try (var statement = connection.prepareStatement("""

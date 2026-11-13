@@ -24,7 +24,7 @@ public final class ResourceController {
     public void run() {
         while (true) {
             view.showMenu();
-            int option = console.readMenuOption(0, 7).orElse(0);
+            int option = console.readMenuOption(0, 8).orElse(0);
             if (option == 0) {
                 return;
             }
@@ -37,6 +37,7 @@ public final class ResourceController {
                     case 5 -> view.showLoans(loanDao.findAll(false));
                     case 6 -> returnResource();
                     case 7 -> view.showLoans(loanDao.findAll(true));
+                    case 8 -> changeStatus();
                     default -> { }
                 }
             } catch (IllegalArgumentException exception) {
@@ -47,6 +48,37 @@ public final class ResourceController {
                         ? "Ya existe un recurso con ese código."
                         : "No se pudo completar la operación de recursos. " + exception.getMessage());
             }
+        }
+    }
+
+    private void changeStatus() throws SQLException {
+        var resources = resourceDao.findAll();
+        view.showResources(resources);
+        if (resources.isEmpty()) {
+            return;
+        }
+        while (true) {
+            view.showSelectionPrompt("recurso para cambiar estado");
+            var id = console.readMenuOption(0, Integer.MAX_VALUE);
+            if (id.isEmpty() || id.getAsInt() == 0) {
+                return;
+            }
+            if (resources.stream().noneMatch(resource -> resource.id() == id.getAsInt())) {
+                console.showError("Selecciona un recurso del listado.");
+                continue;
+            }
+            view.showStatusPrompt();
+            int option = console.readMenuOption(0, 3).orElse(0);
+            if (option == 0) {
+                return;
+            }
+            String status = java.util.List.of("Disponible", "En Mantenimiento", "Dado de Baja").get(option - 1);
+            console.showError("¿Confirmar cambio a " + status + "? 1 = confirmar, 0 = cancelar.");
+            if (console.readMenuOption(0, 1).orElse(0) == 1) {
+                resourceDao.changeStatus(id.getAsInt(), status);
+                view.showSuccess("Estado actualizado a " + status, id.getAsInt());
+            }
+            return;
         }
     }
 
