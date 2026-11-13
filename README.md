@@ -176,13 +176,17 @@ cierran la conexión al salir del bloque try-with-resources.
 
 | Módulo | Operaciones disponibles |
 | --- | --- |
-| Estudiantes | Listar, registrar estudiante y acudiente, consultar grados, matricular e historial |
+| Estudiantes | Listar, registrar estudiante y acudiente con dirección y nombres completos, consultar grados, matricular, retirar matrícula, graduar e historial |
 | Académico | Inscripciones, notas, promedios, asistencia e informe semanal de ausencias |
 | Profesores | Registro, directorio, asignaciones y horarios con control de cruces |
 | Extracurriculares | Clubes, cupos, inscripciones, retiros, eventos, participantes y resultados |
 | Finanzas | Conceptos, pagos, facturas, tarifas, cobros, aplicación de abonos y saldos vencidos |
 | Recursos | Inventario, registro, préstamos a estudiantes/profesores, devoluciones y vencidos |
 | Reportes | Promedios por estudiante y por grado, materia, año y período |
+
+El retiro cierra la matrícula y sus inscripciones activas del año seleccionado.
+La graduación requiere grado 11 y completa esas inscripciones. El estado del
+estudiante cambia solo si no conserva otras matrículas activas.
 
 Cada módulo se abre desde el menú principal. Los formularios indican cómo
 cancelar y los selectores permiten volver con 0. Registrar un pago no reduce
@@ -204,7 +208,11 @@ los préstamos, aplicaciones y otros flujos emplean bloqueos de filas.
 
 ## Problemas conocidos y limitaciones
 
-- Facturación y CUFE son simulaciones académicas; no hay validación DIAN.
+- La factura usa datos ficticios con presentación comercial. El CUFE y la resolución
+  corresponden a un ejercicio académico; no hay autorización ni validación DIAN.
+- Si ya existen facturas emitidas, conserva su configuración original mediante
+  `INVOICE_CONFIG_PATH`: cambiar el NIT impide regenerar sus PDF con el CUFE anterior.
+- Los cambios del lote SQL se aplican a instalaciones nuevas; no actualizan datos existentes.
 - El lote se carga por SQL: sus pagos no generan PDF hasta solicitarlos en consola.
 - La aplicación permite registrar y consultar las entidades principales, pero
   no ofrece edición y eliminación general para todas ellas.
