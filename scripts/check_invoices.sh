@@ -17,7 +17,7 @@ if command -v pdftotext >/dev/null 2>&1; then
 import sys
 from pathlib import Path
 text = Path(sys.argv[1]).read_text()
-for expected in ['LH-000123', '350000.50', 'Mariana López Torres', 'Lucía Torres Gómez', 'CUFE simulado']:
+for expected in ['LH-000123', '350000.50', 'Mariana López Torres', 'Lucía Torres Gómez', 'CUFE:']:
     assert expected in text, expected
 print('PDF text and Spanish accents verified.')
 PY

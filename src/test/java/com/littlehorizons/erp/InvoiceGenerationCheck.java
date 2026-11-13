@@ -2,6 +2,7 @@ package com.littlehorizons.erp;
 
 import com.littlehorizons.erp.dao.InvoiceDao;
 import com.littlehorizons.erp.model.Invoice;
+import com.littlehorizons.erp.model.SchoolBillingDetails;
 import com.littlehorizons.erp.model.InvoicePayment;
 import com.littlehorizons.erp.service.InvoicePdfWriter;
 import com.littlehorizons.erp.service.InvoiceDocumentWriter;
@@ -110,7 +111,7 @@ public final class InvoiceGenerationCheck {
         Invoice first = service.generate(42);
         require(Files.isRegularFile(Path.of(first.filePath())), "PDF was not created");
         require(first.cufe().length() == 96, "CUFE must fit the database column");
-        require(first.cufe().equals(InvoiceService.simulatedCufe(first.number(), "900000000-0", first.issueDate())), "CUFE differs");
+        require(first.cufe().equals(InvoiceService.simulatedCufe(first.number(), SchoolBillingDetails.load().taxId(), first.issueDate())), "CUFE differs");
         Invoice second = service.generate(42);
         require(second.equals(first) && dao.reservations == 1 && writer.renders == 1, "Retry duplicated an invoice");
         Files.delete(Path.of(first.filePath()));
