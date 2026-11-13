@@ -1,5 +1,6 @@
 package com.littlehorizons.erp.service;
 
+import com.littlehorizons.erp.model.StudentRegistration;
 import com.littlehorizons.erp.dao.GuardianDao;
 import com.littlehorizons.erp.dao.StudentDao;
 import com.littlehorizons.erp.dao.StudentGuardianDao;
@@ -23,14 +24,20 @@ public final class StudentRegistrationService {
                                             String firstName, String lastName, LocalDate birthDate,
                                             String gender, LocalDate admissionDate,
                                             String guardianDocumentNumber) throws SQLException {
+        return registerWithExistingGuardian(new StudentRegistration(documentType, documentNumber,
+                firstName, lastName, birthDate, gender, admissionDate, guardianDocumentNumber,
+                null, null, null));
+    }
+
+    public int registerWithExistingGuardian(StudentRegistration student) throws SQLException {
+        String guardianDocumentNumber = student.guardianDocumentNumber();
         try (var connection = DatabaseConnection.open()) {
             connection.setAutoCommit(false);
             try {
                 int guardianId = guardianDao.findGuardianIdByDocument(connection, guardianDocumentNumber)
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "No existe un acudiente con ese documento."));
-                int studentId = studentDao.insertStudent(connection, documentType, documentNumber,
-                        firstName, lastName, birthDate, gender, admissionDate);
+                int studentId = studentDao.insertStudent(connection, student);
                 studentGuardianDao.linkPrimaryGuardian(connection, studentId, guardianId);
                 connection.commit();
                 return studentId;

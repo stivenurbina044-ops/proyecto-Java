@@ -51,6 +51,30 @@ public final class EnrollmentController {
         }
     }
 
+    public void closeEnrollment(boolean graduated) {
+        var document = view.readStudentDocument();
+        if (document.isEmpty()) {
+            return;
+        }
+        var year = view.readAcademicYear();
+        if (year.isEmpty()) {
+            return;
+        }
+        view.showError("Confirma el cierre de la matrícula: 1 = confirmar, 0 = cancelar.");
+        if (view.readMenuOption(0, 1).orElse(0) == 0) {
+            return;
+        }
+        try {
+            enrollmentDao.closeEnrollment(document.get(), year.getAsInt(), graduated);
+            view.showError(graduated ? "Graduación registrada." : "Retiro de matrícula registrado.");
+        } catch (IllegalArgumentException exception) {
+            view.showError(exception.getMessage());
+        } catch (SQLException exception) {
+            ErrorLogger.log("EnrollmentController: enrollment closure failed", exception);
+            view.showError("No se pudo cerrar la matrícula. Intenta nuevamente.");
+        }
+    }
+
     public void showAll() {
         try {
             view.showEnrollments(enrollmentDao.findAll());

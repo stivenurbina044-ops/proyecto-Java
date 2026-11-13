@@ -67,6 +67,8 @@ public final class ConsoleView {
                 4. Consultar grados
                 5. Matricular estudiante
                 6. Consultar matrículas
+                7. Retirar matrícula
+                8. Registrar graduación
                 0. Volver al menú principal
                 """);
     }

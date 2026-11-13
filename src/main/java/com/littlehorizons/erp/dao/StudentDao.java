@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.dao;
 
 import com.littlehorizons.erp.model.Student;
+import com.littlehorizons.erp.model.StudentRegistration;
 import com.littlehorizons.erp.util.DatabaseConnection;
 import java.sql.Connection;
 import java.sql.Date;
@@ -47,6 +48,20 @@ public final class StudentDao {
             }
         }
         return students;
+    }
+
+    public int insertStudent(Connection connection, StudentRegistration student) throws SQLException {
+        int id = insertStudent(connection, student.documentType(), student.documentNumber(),
+                student.firstName(), student.lastName(), student.birthDate(), student.gender(), student.admissionDate());
+        try (var statement = connection.prepareStatement(
+                "UPDATE estudiantes SET segundo_nombre = ?, segundo_apellido = ?, direccion = ? WHERE id_estudiante = ?")) {
+            statement.setString(1, student.middleName());
+            statement.setString(2, student.secondLastName());
+            statement.setString(3, student.address());
+            statement.setInt(4, id);
+            statement.executeUpdate();
+        }
+        return id;
     }
 
     public int insertStudent(Connection connection, String documentType, String documentNumber,

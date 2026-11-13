@@ -32,15 +32,19 @@ public final class StudentRegistrationView {
             String documentType = readChoice("Tipo de documento (TI, CC, CE, Pasaporte)",
                     List.of("TI", "CC", "CE", "Pasaporte"));
             String documentNumber = readMatching("Número de documento del estudiante", 20,
-                    DOCUMENT_NUMBER, "El documento del estudiante debe contener solo dígitos.");
+                    documentType.equals("Pasaporte") ? PASSPORT_NUMBER : DOCUMENT_NUMBER,
+                    "Usa dígitos para el documento; el pasaporte también admite letras.");
             String firstName = readName("Primer nombre");
+            String middleName = readOptionalName("Segundo nombre (opcional)");
             String lastName = readName("Primer apellido");
+            String secondLastName = readOptionalName("Segundo apellido (opcional)");
+            String address = readRequired("Dirección", 255);
             LocalDate birthDate = readDate("Fecha de nacimiento", null);
             String gender = readChoice("Género (M, F, Otro)", List.of("M", "F", "Otro"));
             LocalDate admissionDate = readDate("Fecha de ingreso", birthDate);
             String guardianDocument = readRequired("Número de documento del acudiente", 20);
             return Optional.of(new StudentRegistration(documentType, documentNumber, firstName,
-                    lastName, birthDate, gender, admissionDate, guardianDocument));
+                    lastName, birthDate, gender, admissionDate, guardianDocument, middleName, secondLastName, address));
         } catch (RegistrationCancelled exception) {
             output.println("Registro cancelado.");
             return Optional.empty();
@@ -58,14 +62,17 @@ public final class StudentRegistrationView {
                     passport ? "El pasaporte debe tener de 2 a 20 letras o dígitos."
                             : "El documento del acudiente debe contener de 2 a 20 dígitos.");
             String firstName = readName("Primer nombre");
+            String middleName = readOptionalName("Segundo nombre (opcional)");
             String lastName = readName("Primer apellido");
+            String secondLastName = readOptionalName("Segundo apellido (opcional)");
+            String address = readRequired("Dirección", 255);
             String relationship = readMatching("Parentesco", 50, PERSON_NAME,
                     "Ingresa un parentesco como Madre, Padre o Tutor legal.");
             String phone = readMatching("Teléfono principal", 20, PHONE_NUMBER,
                     "Ingresa de 7 a 15 dígitos. Puedes usar + al inicio.");
             String responsible = readChoice("¿Es responsable financiero? (S/N)", List.of("S", "N"));
             return Optional.of(new GuardianRegistration(documentType, documentNumber, firstName,
-                    lastName, relationship, phone, responsible.equals("S")));
+                    lastName, relationship, phone, responsible.equals("S"), middleName, secondLastName, address));
         } catch (RegistrationCancelled exception) {
             output.println("Registro cancelado.");
             return Optional.empty();
@@ -86,6 +93,23 @@ public final class StudentRegistrationView {
                 return value;
             }
             output.printf("Ingresa entre 1 y %d caracteres.%n", maxLength);
+        }
+    }
+
+    private String readOptionalName(String prompt) {
+        while (true) {
+            output.print(prompt + ": ");
+            if (!input.hasNextLine()) {
+                throw new RegistrationCancelled();
+            }
+            String value = input.nextLine().strip();
+            if (value.equalsIgnoreCase("/volver")) {
+                throw new RegistrationCancelled();
+            }
+            if (value.isEmpty() || (value.length() <= 100 && PERSON_NAME.matcher(value).matches())) {
+                return value.isEmpty() ? null : value;
+            }
+            output.println("Usa letras y máximo 100 caracteres, o Enter para omitir.");
         }
     }
 

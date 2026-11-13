@@ -16,7 +16,8 @@ public final class SubjectRegistrationDao {
                 JOIN matriculas m ON m.id_grado = s.id_grado
                 JOIN estudiantes e ON e.id_estudiante = m.id_estudiante
                 WHERE e.numero_documento = ? AND m.`año_academico` = ?
-                  AND m.estado_matricula = 'Activa' AND s.esta_activa = 1
+                  AND e.estado = 'Activo' AND e.fecha_ingreso <= CURRENT_DATE
+                  AND YEAR(e.fecha_ingreso) <= m.`año_academico` AND m.estado_matricula = 'Activa' AND s.esta_activa = 1
                 ORDER BY s.nombre_materia, s.id_materia
                 """;
         List<Subject> subjects = new ArrayList<>();
@@ -50,7 +51,8 @@ public final class SubjectRegistrationDao {
                 JOIN matriculas m ON m.id_estudiante = e.id_estudiante
                 JOIN materias s ON s.id_grado = m.id_grado
                 WHERE e.numero_documento = ? AND m.`año_academico` = ?
-                  AND m.estado_matricula = 'Activa'
+                  AND e.estado = 'Activo' AND e.fecha_ingreso <= CURRENT_DATE
+                  AND YEAR(e.fecha_ingreso) <= m.`año_academico` AND m.estado_matricula = 'Activa'
                   AND s.id_materia = ? AND s.esta_activa = 1
                 """;
         try (var connection = DatabaseConnection.open();

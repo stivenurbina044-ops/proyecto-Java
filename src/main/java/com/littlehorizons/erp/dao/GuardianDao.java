@@ -27,8 +27,9 @@ public class GuardianDao {
         String sql = """
                 INSERT INTO acudientes (
                     tipo_documento, numero_documento, primer_nombre, primer_apellido,
-                    parentesco, telefono_principal, es_responsable_financiero
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    parentesco, telefono_principal, es_responsable_financiero,
+                    segundo_nombre, segundo_apellido, direccion
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (var connection = DatabaseConnection.open();
@@ -40,6 +41,9 @@ public class GuardianDao {
             statement.setString(5, guardian.relationship());
             statement.setString(6, guardian.primaryPhone());
             statement.setBoolean(7, guardian.financiallyResponsible());
+            statement.setString(8, guardian.middleName());
+            statement.setString(9, guardian.secondLastName());
+            statement.setString(10, guardian.address());
             statement.executeUpdate();
 
             try (var keys = statement.getGeneratedKeys()) {

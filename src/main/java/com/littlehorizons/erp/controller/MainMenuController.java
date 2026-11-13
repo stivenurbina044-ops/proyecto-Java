@@ -77,7 +77,7 @@ public final class MainMenuController {
     private void runStudentMenu() {
         while (true) {
             view.showStudentMenu();
-            int option = view.readMenuOption(0, 6).orElse(0);
+            int option = view.readMenuOption(0, 8).orElse(0);
             switch (option) {
                 case 1 -> showStudents();
                 case 2 -> registerStudent();
@@ -85,6 +85,8 @@ public final class MainMenuController {
                 case 4 -> showGrades();
                 case 5 -> enrollment.register();
                 case 6 -> enrollment.showAll();
+                case 7 -> enrollment.closeEnrollment(false);
+                case 8 -> enrollment.closeEnrollment(true);
                 default -> {
                     return;
                 }
@@ -100,10 +102,7 @@ public final class MainMenuController {
 
         var student = form.get();
         try {
-            int studentId = registration.registerWithExistingGuardian(
-                    student.documentType(), student.documentNumber(), student.firstName(),
-                    student.lastName(), student.birthDate(), student.gender(), student.admissionDate(),
-                    student.guardianDocumentNumber());
+            int studentId = registration.registerWithExistingGuardian(student);
             view.showStudentRegistered(studentId);
         } catch (IllegalArgumentException exception) {
             view.showError(exception.getMessage());
