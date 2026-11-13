@@ -10,6 +10,32 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class InvoiceDao {
+    public Optional<byte[]> findDocument(Connection connection, int invoiceId) throws SQLException {
+        try (var statement = connection.prepareStatement(
+                "SELECT contenido_pdf FROM documentos_factura WHERE id_factura = ?")) {
+            statement.setInt(1, invoiceId);
+            try (var result = statement.executeQuery()) {
+                return result.next() ? Optional.of(result.getBytes(1)) : Optional.empty();
+            }
+        } catch (SQLException exception) {
+            if (exception.getErrorCode() == 1146) {
+                throw new SQLException("Ejecuta docs/migrations/003_invoice_documents.sql para habilitar el archivo de facturas.",
+                        exception.getSQLState(), exception.getErrorCode(), exception);
+            }
+            throw exception;
+        }
+    }
+
+    public void saveDocument(Connection connection, int invoiceId, byte[] pdf) throws SQLException {
+        // An issued document is immutable; retries must never replace its original bytes.
+        try (var statement = connection.prepareStatement(
+                "INSERT INTO documentos_factura (id_factura, contenido_pdf) VALUES (?, ?) ON DUPLICATE KEY UPDATE id_factura = documentos_factura.id_factura")) {
+            statement.setInt(1, invoiceId);
+            statement.setBytes(2, pdf);
+            statement.executeUpdate();
+        }
+    }
+
     public InvoicePayment lockPayment(Connection connection, int paymentId) throws SQLException {
         String sql = """
                 SELECT p.id_pago, p.monto_pagado, p.fecha_pago, p.metodo_pago, p.numero_recibo,

@@ -27,8 +27,21 @@ import java.util.logging.Logger;
 public final class InvoiceGenerationCheck {
     private static final class MemoryInvoiceDao extends InvoiceDao {
         private Invoice invoice;
+        private byte[] document;
         private int reservations;
         private boolean failComplete;
+
+        @Override
+        public Optional<byte[]> findDocument(Connection connection, int invoiceId) {
+            return Optional.ofNullable(document);
+        }
+
+        @Override
+        public void saveDocument(Connection connection, int invoiceId, byte[] pdf) {
+            if (document == null) {
+                document = pdf.clone();
+            }
+        }
 
         @Override
         public InvoicePayment lockPayment(Connection connection, int paymentId) {
@@ -84,10 +97,12 @@ public final class InvoiceGenerationCheck {
                     return null;
                 }
                 Invoice before = dao.invoice;
+                byte[] documentBefore = dao.document;
                 return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
                         new Class<?>[] {Connection.class}, (proxy, method, values) -> {
                             if (method.getName().equals("rollback")) {
                                 dao.invoice = before;
+                                dao.document = documentBefore;
                                 rollbacks[0]++;
                             }
                             if (method.getReturnType() == boolean.class) {
@@ -112,17 +127,27 @@ public final class InvoiceGenerationCheck {
         require(Files.isRegularFile(Path.of(first.filePath())), "PDF was not created");
         require(first.cufe().length() == 96, "CUFE must fit the database column");
         require(first.cufe().equals(InvoiceService.simulatedCufe(first.number(), SchoolBillingDetails.load().taxId(), first.issueDate())), "CUFE differs");
+        // A legacy invoice with an existing PDF is archived on first consultation.
+        dao.document = null;
         Invoice second = service.generate(42);
+        require(dao.document != null, "Existing PDF was not archived");
         require(second.equals(first) && dao.reservations == 1 && writer.renders == 1, "Retry duplicated an invoice");
+        byte[] originalPdf = Files.readAllBytes(Path.of(first.filePath()));
+        Path configuration = Path.of(System.getenv("INVOICE_CONFIG_PATH"));
+        String originalConfiguration = Files.readString(configuration);
+        Files.writeString(configuration, originalConfiguration + "\nschool.taxId=999999999-9\n");
         Files.delete(Path.of(first.filePath()));
         Invoice regenerated = service.generate(42);
         require(regenerated.id() == first.id() && regenerated.number().equals(first.number())
                 && regenerated.cufe().equals(first.cufe()) && dao.reservations == 1, "Regeneration changed invoice identity");
         byte[] pdf = Files.readAllBytes(Path.of(regenerated.filePath()));
+        require(java.util.Arrays.equals(pdf, originalPdf) && writer.renders == 1, "Restoration changed the issued PDF after a tax ID change");
+        Files.writeString(configuration, originalConfiguration);
         require(new String(pdf, 0, 8, StandardCharsets.US_ASCII).equals("%PDF-1.4"), "Invalid PDF header");
         Files.write(folder.resolve("preview.pdf"), pdf);
         Files.delete(Path.of(regenerated.filePath()));
         dao.invoice = null;
+        dao.document = null;
         writer.failRender = true;
         try {
             service.generate(42);

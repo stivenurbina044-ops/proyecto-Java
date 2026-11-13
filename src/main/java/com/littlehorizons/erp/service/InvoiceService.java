@@ -37,6 +37,9 @@ public final class InvoiceService {
                 var payment = invoiceDao.lockPayment(connection, paymentId);
                 var existing = invoiceDao.findByPayment(connection, paymentId);
                 if (existing.isPresent() && isReady(existing.get(), school.outputDirectory())) {
+                    if (invoiceDao.findDocument(connection, existing.get().id()).isEmpty()) {
+                        invoiceDao.saveDocument(connection, existing.get().id(), Files.readAllBytes(Path.of(existing.get().filePath())));
+                    }
                     connection.commit();
                     return existing.get();
                 }
@@ -44,9 +47,10 @@ public final class InvoiceService {
                 String number = existing.isPresent() ? existing.get().number()
                         : String.format(Locale.ROOT, "LH-%06d", id);
                 LocalDate date = existing.isPresent() ? existing.get().issueDate() : payment.currentDate();
-                String cufe = simulatedCufe(number, school.taxId(), date);
-                if (existing.isPresent() && existing.get().cufe() != null && !cufe.equals(existing.get().cufe())) {
-                    throw new IOException("La configuración del NIT no coincide con el CUFE guardado. Restaura la configuración original.");
+                var savedDocument = existing.isPresent() ? invoiceDao.findDocument(connection, id) : java.util.Optional.<byte[]>empty();
+                String cufe = savedDocument.isPresent() ? existing.get().cufe() : simulatedCufe(number, school.taxId(), date);
+                if (savedDocument.isEmpty() && existing.isPresent() && existing.get().cufe() != null && !cufe.equals(existing.get().cufe())) {
+                    throw new IOException("La configuración del NIT no coincide con el CUFE guardado. Restaura la configuración original; esta factura antigua aún no tiene una copia PDF archivada.");
                 }
                 String filename = String.format(Locale.ROOT, "factura_%06d_%s.pdf", id, UUID.randomUUID());
                 Path destination = school.outputDirectory().resolve(filename);
@@ -54,7 +58,11 @@ public final class InvoiceService {
                     throw new IOException("La ruta del PDF supera los 500 caracteres admitidos en la base de datos.");
                 }
                 Invoice invoice = new Invoice(id, paymentId, number, date, cufe, filename, destination.toString());
-                byte[] pdf = writer.render(invoice, payment, school);
+                byte[] pdf = savedDocument.isPresent() ? savedDocument.get() : writer.render(invoice, payment, school);
+                if (pdf.length < 5 || !new String(pdf, 0, 5, StandardCharsets.US_ASCII).equals("%PDF-")) {
+                    throw new IOException("El documento archivado o generado no es un PDF válido.");
+                }
+                invoiceDao.saveDocument(connection, id, pdf);
                 Files.createDirectories(school.outputDirectory());
                 createdFile = Files.createTempFile(school.outputDirectory(), ".invoice-", ".tmp");
                 Files.write(createdFile, pdf);

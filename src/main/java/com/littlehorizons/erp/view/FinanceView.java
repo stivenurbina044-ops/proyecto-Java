@@ -209,7 +209,7 @@ public final class FinanceView {
     }
 
     public void showInvoice(Invoice invoice) {
-        output.println("Factura académica: " + invoice.number());
+        output.println("Factura: " + invoice.number());
         output.println("PDF guardado en: " + invoice.filePath());
     }
 

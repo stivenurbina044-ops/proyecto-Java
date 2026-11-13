@@ -333,6 +333,13 @@ CREATE TABLE facturas (
     INDEX idx_pago (id_pago)
 ) ENGINE=InnoDB COMMENT='Registro de facturas electrónicas generadas';
 
+CREATE TABLE documentos_factura (
+    id_factura INT PRIMARY KEY,
+    contenido_pdf LONGBLOB NOT NULL,
+    fecha_archivo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_factura) REFERENCES facturas(id_factura) ON DELETE RESTRICT
+) ENGINE=InnoDB COMMENT='Copia inmutable del PDF emitido para recuperación';
+
 -- 5. GESTIÓN DE RECURSOS
 CREATE TABLE categorias_recurso (
     id_categoria INT AUTO_INCREMENT PRIMARY KEY,
