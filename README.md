@@ -49,7 +49,11 @@ estudiantes. El instalador está pensado para una base nueva; las sentencias DDL
 no se revierten con ROLLBACK.
 
 Las actualizaciones de bases existentes están en `docs/migrations/`. Antes de
-ejecutar una migración, comprueba si sus tablas ya están creadas.
+ejecutar una migración, comprueba si sus tablas ya están creadas. Para usar la
+versión actual de facturación sobre una base anterior, ejecuta una vez
+[003_invoice_documents.sql](docs/migrations/003_invoice_documents.sql), después de
+hacer una copia de seguridad. No vuelvas a ejecutar `database.sql` sobre tu base
+existente.
 
 Los archivos `docs/seed_checks.sql` y `docs/database_checks.sql` permiten revisar
 los conteos y las relaciones después de la carga.
@@ -116,12 +120,23 @@ de trabajo. Allí se crearán `error_log.txt` y la carpeta `facturas/` cuando
 corresponda. El JAR generado por Maven no incluye las dependencias; la ejecución
 desde el IDE utiliza el classpath del módulo.
 
-Pruebas locales:
+Las comprobaciones se ejecutan desde Maven (incluye los programas de prueba
+existentes y los casos de ciclo de matrícula y estados de recursos):
+
+```sh
+mvn test
+```
+
+Las pruebas requieren Bash y herramientas Unix (`find`, `xargs`, `mktemp`),
+disponibles en Linux o WSL. No usan la base de trabajo: los casos JDBC utilizan
+dobles y credenciales de prueba. La primera ejecución descarga el proveedor JUnit
+utilizado por Maven. También pueden ejecutarse individualmente:
 
 ```sh
 bash scripts/check_student_billing.sh
 bash scripts/check_invoices.sh
 bash scripts/check_academic_statistics.sh
+bash scripts/check_registration.sh
 ```
 
 Los casos JDBC usan dobles y no acceden a MySQL. Las pruebas manuales realizadas
@@ -191,8 +206,17 @@ cierran la conexión al salir del bloque try-with-resources.
 | Reportes | Promedios por estudiante y por grado, materia, año y período |
 
 El retiro cierra la matrícula y sus inscripciones activas del año seleccionado.
-La graduación requiere grado 11 y completa esas inscripciones. El estado del
-estudiante cambia solo si no conserva otras matrículas activas.
+La opción 9 de Estudiantes reactiva estudiantes retirados o suspendidos, conservando
+sus matrículas históricas cerradas; después se registra una nueva matrícula.
+La graduación requiere grado 11, completa las matrículas e inscripciones antiguas
+activas y establece el estado Graduado. Si hay una matrícula activa posterior al
+año elegido, la operación se rechaza para no graduar sobre un año histórico incorrecto.
+Las opciones 10 y 11 actualizan datos personales del estudiante y acudiente,
+conservando documentos, fecha de ingreso y relaciones existentes.
+
+La opción 8 de Recursos permite mantenimiento, disponibilidad y baja definitiva.
+No permite cambiar el estado de recursos prestados ni con préstamos sin cerrar.
+Los recursos dados de baja conservan su historial y no se reactivan.
 
 Cada módulo se abre desde el menú principal. Los formularios indican cómo
 cancelar y los selectores permiten volver con 0. Registrar un pago no reduce
@@ -216,14 +240,23 @@ los préstamos, aplicaciones y otros flujos emplean bloqueos de filas.
 
 - La factura usa datos ficticios con presentación comercial. El CUFE y la resolución
   corresponden a un ejercicio académico; no hay autorización ni validación DIAN.
-- Si ya existen facturas emitidas, conserva su configuración original mediante
-  `INVOICE_CONFIG_PATH`: cambiar el NIT impide regenerar sus PDF con el CUFE anterior.
+- Para una base existente, ejecuta una vez
+  [003_invoice_documents.sql](docs/migrations/003_invoice_documents.sql) antes de
+  usar la facturación actualizada. Crea el archivo de documentos sin cambiar pagos.
+  Las instalaciones nuevas ya lo incluyen en `database.sql`.
+- Cada factura nueva guarda una copia inmutable de su PDF en MySQL. Si desaparece
+  el archivo local, la opción 6 restaura los mismos bytes, CUFE y número aunque
+  cambie la configuración del colegio. Las facturas antiguas se archivan al
+  consultarlas si su PDF todavía existe: consulta cada una antes de borrar archivos.
+  Si una factura antigua ya no tiene PDF ni copia en MySQL, su reconstrucción requiere
+  el NIT original mediante `INVOICE_CONFIG_PATH` y toma los demás datos actuales;
+  no puede garantizar una reproducción exacta de su contenido original.
 - Los cambios del lote SQL se aplican a instalaciones nuevas; no actualizan datos existentes.
 - El lote se carga por SQL: sus pagos no generan PDF hasta solicitarlos en consola.
 - La aplicación permite registrar y consultar las entidades principales, pero
   no ofrece edición y eliminación general para todas ellas.
-- No hay autenticación, deshacer aplicaciones ni mantenimiento/baja de recursos
-  desde consola. Se conserva historial y se restringen cambios relacionados.
+- No hay autenticación ni deshacer aplicaciones de pagos. Se conserva historial
+  y se restringen cambios relacionados.
 - Las pruebas aisladas no sustituyen una prueba de integración con MySQL ni
   cubren concurrencia real.
 
