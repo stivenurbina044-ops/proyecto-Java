@@ -14,11 +14,12 @@ public final class AcademicStatisticsService {
     private record CourseKey(SubjectKey subject, String period) { }
 
     public List<StudentSubjectAverage> studentSubjectAverages(List<ReportGrade> grades) {
-        var grouped = grades.stream().collect(Collectors.groupingBy(this::subjectKey));
+        var grouped = grades.stream().collect(Collectors.groupingBy(this::subjectKey,
+                Collectors.partitioningBy(grade -> "Final".equals(grade.period()))));
         return grouped.entrySet().stream().map(entry -> {
             var key = entry.getKey();
-            var periodGrades = entry.getValue().stream().filter(grade -> !"Final".equals(grade.period())).toList();
-            BigDecimal finalGrade = entry.getValue().stream().filter(grade -> "Final".equals(grade.period()))
+            var periodGrades = entry.getValue().get(false);
+            BigDecimal finalGrade = entry.getValue().get(true).stream()
                     .map(ReportGrade::value).findFirst().orElse(null);
             return new StudentSubjectAverage(key.id(), key.code(), key.name(), key.year(), periodGrades.size(),
                     periodGrades.isEmpty() ? null : average(periodGrades), finalGrade);

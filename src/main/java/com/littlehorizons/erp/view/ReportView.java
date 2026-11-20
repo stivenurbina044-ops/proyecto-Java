@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public final class ReportView {
+    private static final String STUDENT_ROW = "%-14s | %-25s | %8s | %9s | %s%n";
+    private static final String COURSE_ROW = "%-14s | %-25s | %11s | %s%n";
     private final PrintStream output;
 
     public ReportView(PrintStream output) {
@@ -27,10 +29,11 @@ public final class ReportView {
         output.println("Media simple de períodos registrados I–IV. La nota Final manual se muestra separada.");
         if (averages.isEmpty()) {
             output.println("No hay calificaciones para ese documento y año.");
+            return;
         }
+        output.printf(STUDENT_ROW, "Código", "Materia", "Períodos", "Promedio", "Final manual");
         for (StudentSubjectAverage average : averages) {
-            output.printf("%s | %s | Períodos con nota: %d de 4 | Promedio: %s | Final manual: %s%n",
-                    average.subjectCode(), average.subjectName(), average.recordedPeriods(),
+            output.printf(STUDENT_ROW, average.subjectCode(), average.subjectName(), average.recordedPeriods() + " de 4",
                     format(average.periodAverage()), format(average.finalGrade()));
         }
     }
@@ -40,9 +43,11 @@ public final class ReportView {
         output.println("Solo estudiantes con nota registrada y matrícula en ese grado y año; faltantes no cuentan como cero.");
         if (averages.isEmpty()) {
             output.println("No hay calificaciones para ese grado, año y período.");
+            return;
         }
+        output.printf(COURSE_ROW, "Código", "Materia", "Estudiantes", "Promedio");
         for (CourseSubjectAverage average : averages) {
-            output.printf("%s | %s | Estudiantes con nota: %d | Promedio: %s%n", average.subjectCode(),
+            output.printf(COURSE_ROW, average.subjectCode(),
                     average.subjectName(), average.gradedStudents(), format(average.average()));
         }
     }
