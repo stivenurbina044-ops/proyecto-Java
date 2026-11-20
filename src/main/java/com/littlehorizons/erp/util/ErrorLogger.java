@@ -15,10 +15,22 @@ public final class ErrorLogger {
     private ErrorLogger() {
     }
 
-    public static synchronized void log(String operation, Exception exception) {
+    public static void log(String operation, Exception exception) {
+        write(Level.ERROR, operation, exception);
+    }
+
+    public static void warning(String operation, Exception exception) {
+        write(Level.WARNING, operation, exception);
+    }
+
+    private enum Level {
+        ERROR, WARNING
+    }
+
+    private static synchronized void write(Level level, String operation, Exception exception) {
         StringWriter details = new StringWriter();
         try (PrintWriter writer = new PrintWriter(details)) {
-            writer.println(OffsetDateTime.now() + " | " + operation);
+            writer.println(OffsetDateTime.now() + " | " + level + " | " + operation);
             exception.printStackTrace(writer);
             writer.println();
         }

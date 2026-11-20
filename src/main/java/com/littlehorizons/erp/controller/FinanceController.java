@@ -66,7 +66,7 @@ public final class FinanceController {
                                 : option == 9 ? "Ya existe ese cobro para el estudiante, concepto, año y referencia."
                                 : option == 11 ? "El pago ya está aplicado a un cobro."
                                 : "Ya existe un pago con ese número de recibo.")
-                        : "No se pudo completar la operación financiera. " + exception.getMessage());
+                        : "No se pudo completar la operación financiera. Consulta error_log.txt.");
             }
         }
     }
@@ -130,7 +130,7 @@ public final class FinanceController {
             var invoice = invoices.generate(paymentId);
             view.showInvoice(invoice);
         } catch (SQLException | IOException | RuntimeException exception) {
-            ErrorLogger.log("FinanceController: invoice generation failed for payment " + paymentId, exception);
+            ErrorLogger.warning("FinanceController: invoice generation failed for payment " + paymentId, exception);
             console.showError("El pago " + paymentId + " ya está guardado, pero no se pudo obtener su PDF. "
                     + "Usa la opción 6 para reintentar sin registrar otro pago. " + exception.getMessage());
         }
