@@ -42,9 +42,11 @@ externo. Las atribuciones del generador QR están en [third_party.md](docs/third
 ### Creación
 
 Para crear la base por primera vez, ejecuta [docs/database.sql](docs/database.sql)
-desde DBeaver y detén la ejecución si aparece un error. Incluye dos secciones: DDL completo y DML de catálogos
-más 30 registros ficticios en cada una de las ocho tablas principales. El esquema
-usa `DECIMAL(2,1)` para notas y tablas separadas para préstamos de profesores y
+desde DBeaver y detén la ejecución si aparece un error. Crea el esquema y carga
+los catálogos y el lote ficticio LHSEED de 2026. El lote tiene 30 filas en cada una
+de 20 tablas y 35 filas en cada una de las tablas de pagos y cobros. Los catálogos
+de grados, categorías de recursos y conceptos de pago conservan sus valores base.
+El esquema usa `DECIMAL(2,1)` para notas y tablas separadas para préstamos de profesores y
 estudiantes. El instalador está pensado para una base nueva; las sentencias DDL de MySQL
 no se revierten con ROLLBACK.
 
@@ -59,7 +61,9 @@ Los archivos `docs/seed_checks.sql` y `docs/database_checks.sql` permiten revisa
 los conteos y las relaciones después de la carga.
 El lote LHSEED contiene datos ficticios. `docs/seed_data.sql` permite cargarlo
 por separado solo en una base con esquema y catálogos que todavía no lo tenga.
-Usa una sola de las dos cargas: `docs/database.sql` ya incluye el lote completo.
+Ejecuta una sola carga. Al usar `docs/seed_data.sql`, ejecuta
+`docs/seed_checks.sql` en la misma conexión y confirma la transacción si coinciden
+los conteos y las consultas de incoherencias devuelven cero filas.
 
 ### Credenciales
 
@@ -185,10 +189,16 @@ concretas.
 ### Patrones
 
 - **MVC:** vistas de consola, modelos y controladores separados.
-- **DAO:** StudentDao, PaymentDao y otros encapsulan JDBC y SQL parametrizado.
+- **DAO:** `PaymentDao` encapsula el SQL parametrizado de pagos. Esto permite que
+  `FinanceController` coordine el formulario y su confirmación sin conocer las
+  consultas ni la estructura de las tablas.
 - **Estrategia de renderizado:** InvoiceDocumentWriter permite inyectar la forma de
   producir los bytes de la factura; InvoicePdfWriter es la implementación actual.
 - **Inyección por constructor:** Main conecta controladores, vistas, DAO y servicios.
+
+La clase de 815 líneas `io.nayuki.qrcodegen.QrCode` forma parte de la biblioteca QR
+de Nayuki. `InvoicePdfWriter` usa su API para dibujar el código en la factura.
+Consulta la atribución en [docs/third_party.md](docs/third_party.md).
 
 `DatabaseConnection.open()` crea una conexión JDBC para cada operación. Los DAO
 cierran la conexión al salir del bloque try-with-resources.
@@ -223,12 +233,38 @@ cancelar y los selectores permiten volver con 0. Registrar un pago no reduce
 el saldo de un cobro: debe aplicarse desde Gestión Financiera, opción 11.
 La opción 6 permite consultar o recuperar la factura de un pago existente.
 
+## Recorrido de prueba y sustentación
+
+1. En Académico, consulta el historial de asistencia del documento `1026004`.
+   El dato del 18 de septiembre de 2026 corresponde a una ausencia. En Profesores,
+   revisa el horario del viernes de su asignación.
+2. En Reportes, consulta `1026001` para 2026. `AcademicReportDao` recupera las
+   notas y `AcademicStatisticsService` las agrupa por materia y año con
+   `groupingBy`. `partitioningBy` separa la nota Final de los períodos I a IV.
+   La vista muestra cuántos períodos tienen nota y el promedio de esos períodos.
+3. En Gestión Financiera, opción 10, usa `1026001` para ver el cobro saldado de
+   septiembre y el cobro pendiente de octubre. En la opción 11, selecciona el
+   pago con recibo `LHSEED-REC-OCT001` y el cobro `LHSEED-PENSION-OCT`. El DAO
+   bloquea las filas y comprueba estudiante, concepto, año, período y saldo
+   antes de confirmar el abono. Quedarán 250.000 COP pendientes en octubre.
+   Con `1026016` puedes consultar un cobro de septiembre con saldo de 50.000 COP.
+4. Desde la opción 6 de Finanzas, genera la factura de uno de esos pagos.
+   `InvoiceService` coordina la emisión y `InvoiceDocumentWriter` define el
+   contrato de renderizado. La aplicación guarda la factura y archiva su PDF
+   al emitirlo. Las dos tablas de facturación se llenan durante este flujo.
+5. En Recursos, revisa el historial de préstamos y devuelve `LHSEED-R001`.
+   El DAO cierra el préstamo y actualiza la disponibilidad en una transacción.
+   En Eventos, consulta los participantes de `LHSEED-Evento-002`, que tiene
+   competencia y un resultado registrado.
+
 ## Manejo de errores y logs
 
 Los controladores capturan SQLException, muestran un mensaje y llaman a
 `ErrorLogger.log`. El archivo `error_log.txt` se crea en el directorio de ejecución,
-con fecha, contexto y traza; agrega entradas sin borrar las previas. Está excluido
-de Git. Si no se puede escribir, se avisa por stderr y se permite continuar.
+con fecha, nivel, contexto y traza de la excepción. `ERROR` indica un fallo de
+operación. Finanzas registra `WARNING` cuando el pago está guardado y se puede
+reintentar la obtención del PDF. Las entradas se agregan al final del archivo,
+que está excluido de Git. Si no se puede escribir, se avisa por stderr y se permite continuar.
 Las entradas inválidas se reintentan y las reglas de dominio usan excepciones
 controladas. Los formularios permiten cancelar según los mensajes de cada menú.
 
