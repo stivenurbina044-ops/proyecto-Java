@@ -154,7 +154,7 @@ INSERT INTO pagos
      metodo_pago, numero_recibo, año_academico, periodo_academico, notas)
 SELECT e.id_estudiante, a.id_acudiente, c.id_concepto, 350000.00, '2026-09-18',
        'Transferencia', REPLACE(e.numero_documento, '1026', 'LHSEED-REC'),
-       2026, 'III', 'LHSEED: pago ficticio sin factura ni aplicación automática'
+       2026, 'III', 'LHSEED: pago ficticio de pensión'
 FROM estudiantes e
 JOIN acudientes a ON a.numero_documento = REPLACE(e.numero_documento, '1026', '5226')
 CROSS JOIN conceptos_pago c
@@ -179,6 +179,103 @@ SELECT REPLACE(e.numero_documento, '1026', 'LHSEED-R'),
 FROM estudiantes e CROSS JOIN categorias_recurso c
 WHERE e.numero_documento REGEXP '^1026[0-9]{3}$' AND c.nombre_categoria = 'Libro';
 
+-- Horarios y asistencia: la clase del 18 de septiembre de 2026 cae en viernes.
+INSERT INTO horarios_clase (id_asignacion, dia_semana, hora_inicio, hora_fin)
+SELECT ap.id_asignacion, 5, '08:00:00', '09:00:00'
+FROM asignaciones_profesor ap
+JOIN materias m USING (id_materia)
+WHERE m.codigo_materia REGEXP '^LHSEED-M[0-9]{3}$'
+  AND ap.año_academico = 2026 AND ap.seccion = 'A';
+
+INSERT INTO asistencias (id_estudiante, id_materia, fecha_asistencia, estado_asistencia, registrado_por, observaciones)
+SELECT r.id_estudiante, r.id_materia, '2026-09-18',
+       CASE MOD(CAST(RIGHT(m.codigo_materia, 3) AS UNSIGNED), 4)
+           WHEN 0 THEN 'Ausente' WHEN 1 THEN 'Presente'
+           WHEN 2 THEN 'Tardanza' ELSE 'Excusa Médica'
+       END,
+       r.id_profesor, 'LHSEED: asistencia ficticia'
+FROM registros_academicos r JOIN materias m USING (id_materia)
+WHERE r.observaciones = 'LHSEED: nota ficticia' AND r.periodo_academico = 'III';
+
+INSERT INTO eventos (nombre_evento, descripcion, tipo_evento, fecha_evento, lugar, tiene_competencia, id_organizador)
+SELECT CONCAT('LHSEED-Evento-', RIGHT(p.numero_documento, 3)),
+       CASE WHEN MOD(CAST(RIGHT(p.numero_documento, 3) AS UNSIGNED), 2) = 0
+            THEN 'Torneo de ajedrez' ELSE 'Muestra de lectura' END,
+       CASE WHEN MOD(CAST(RIGHT(p.numero_documento, 3) AS UNSIGNED), 2) = 0
+            THEN 'Deportivo' ELSE 'Cultural' END,
+       DATE_ADD('2026-08-01', INTERVAL CAST(RIGHT(p.numero_documento, 3) AS UNSIGNED) DAY),
+       'Auditorio escolar', MOD(CAST(RIGHT(p.numero_documento, 3) AS UNSIGNED), 2) = 0, p.id_profesor
+FROM profesores p WHERE p.numero_documento REGEXP '^8026[0-9]{3}$';
+
+INSERT INTO participantes_evento (id_evento, id_estudiante, rol_participacion, posicion_obtenida)
+SELECT ev.id_evento, e.id_estudiante,
+       IF(ev.tiene_competencia, 'Competidor', 'Participante'),
+       IF(ev.tiene_competencia, '1', NULL)
+FROM estudiantes e
+JOIN eventos ev ON ev.nombre_evento = CONCAT('LHSEED-Evento-', RIGHT(e.numero_documento, 3))
+WHERE e.numero_documento REGEXP '^1026[0-9]{3}$';
+
+-- Cada ejemplar tiene un préstamo histórico devuelto y uno posterior.
+INSERT INTO prestamos_estudiante
+    (id_recurso, id_estudiante, fecha_prestamo, fecha_devolucion_esperada, fecha_devolucion_real, estado_prestamo, observaciones)
+SELECT r.id_recurso, e.id_estudiante, '2026-02-02', '2026-02-09', '2026-02-06',
+       'Devuelto', 'LHSEED: préstamo de estudiante'
+FROM recursos r JOIN estudiantes e ON r.codigo_recurso = CONCAT('LHSEED-R', RIGHT(e.numero_documento, 3))
+WHERE e.numero_documento REGEXP '^1026[0-9]{3}$';
+
+INSERT INTO prestamos_profesor
+    (id_recurso, id_profesor, fecha_prestamo, fecha_devolucion_esperada, fecha_devolucion_real, estado_prestamo, observaciones)
+SELECT r.id_recurso, p.id_profesor, '2026-09-21', '2026-09-28',
+       CASE WHEN RIGHT(r.codigo_recurso, 3) <= '010' THEN NULL ELSE '2026-09-25' END,
+       CASE WHEN RIGHT(r.codigo_recurso, 3) <= '010' THEN 'Activo' ELSE 'Devuelto' END,
+       'LHSEED: préstamo de profesor'
+FROM recursos r JOIN profesores p ON r.codigo_recurso = CONCAT('LHSEED-R', RIGHT(p.numero_documento, 3))
+WHERE p.numero_documento REGEXP '^8026[0-9]{3}$';
+
+UPDATE recursos r
+JOIN prestamos_profesor pp ON pp.id_recurso = r.id_recurso
+SET r.estado_recurso = 'Prestado'
+WHERE r.codigo_recurso REGEXP '^LHSEED-R[0-9]{3}$'
+  AND pp.observaciones = 'LHSEED: préstamo de profesor' AND pp.estado_prestamo = 'Activo';
+
+-- Pensión de septiembre con saldo total o parcial según la tarifa ficticia.
+-- Todos los abonos pertenecen al mismo estudiante, concepto, año y período del cobro.
+INSERT INTO tarifas_estudiante (id_estudiante, id_concepto, año_academico, monto_personalizado, motivo)
+SELECT p.id_estudiante, p.id_concepto, p.año_academico,
+       CASE WHEN RIGHT(p.numero_recibo, 3) <= '015' THEN 350000.00 ELSE 400000.00 END,
+       'LHSEED: tarifa ficticia de pensión'
+FROM pagos p WHERE p.numero_recibo REGEXP '^LHSEED-REC[0-9]{3}$';
+
+INSERT INTO cobros_estudiante
+    (id_estudiante, id_concepto, año_academico, periodo_academico, referencia, monto_cobrado, fecha_vencimiento)
+SELECT t.id_estudiante, t.id_concepto, t.año_academico, 'III', 'LHSEED-PENSION-SEP',
+       t.monto_personalizado, '2026-09-30'
+FROM tarifas_estudiante t WHERE t.motivo = 'LHSEED: tarifa ficticia de pensión';
+
+INSERT INTO aplicaciones_pago (id_pago, id_cobro, fecha_aplicacion)
+SELECT p.id_pago, c.id_cobro, p.fecha_pago
+FROM pagos p JOIN cobros_estudiante c
+  ON c.id_estudiante = p.id_estudiante AND c.id_concepto = p.id_concepto
+ AND c.año_academico = p.año_academico AND c.periodo_academico = p.periodo_academico
+WHERE p.numero_recibo REGEXP '^LHSEED-REC[0-9]{3}$' AND c.referencia = 'LHSEED-PENSION-SEP';
+
+-- Cinco pagos y cobros de octubre quedan pendientes de aplicación para practicar el flujo.
+INSERT INTO pagos
+    (id_estudiante, id_acudiente, id_concepto, monto_pagado, fecha_pago,
+     metodo_pago, numero_recibo, año_academico, periodo_academico, notas)
+SELECT p.id_estudiante, p.id_acudiente, p.id_concepto, 100000.00, '2026-10-15',
+       'Transferencia', CONCAT('LHSEED-REC-OCT', RIGHT(p.numero_recibo, 3)),
+       p.año_academico, 'IV', 'LHSEED: abono pendiente de aplicar'
+FROM pagos p WHERE p.numero_recibo BETWEEN 'LHSEED-REC001' AND 'LHSEED-REC005';
+
+INSERT INTO cobros_estudiante
+    (id_estudiante, id_concepto, año_academico, periodo_academico, referencia, monto_cobrado, fecha_vencimiento)
+SELECT p.id_estudiante, p.id_concepto, p.año_academico, p.periodo_academico,
+       'LHSEED-PENSION-OCT', t.monto_personalizado, '2026-10-31'
+FROM pagos p JOIN tarifas_estudiante t USING (id_estudiante, id_concepto, año_academico)
+WHERE p.numero_recibo REGEXP '^LHSEED-REC-OCT[0-9]{3}$';
+
+
 -- No confirmar todavía: ejecutar docs/seed_checks.sql en esta misma conexión.
--- Si los ocho conteos son 30 y no hay incoherencias: COMMIT;
+-- Si todos los conteos coinciden y no hay incoherencias: COMMIT;
 -- Ante cualquier error o conteo distinto: ROLLBACK;
