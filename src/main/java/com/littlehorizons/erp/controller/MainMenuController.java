@@ -11,6 +11,7 @@ import java.sql.SQLException;
 
 public final class MainMenuController {
     private static final int EXIT_OPTION = 8;
+    private static final int CERTIFICATE_OPTION = 9;
     private final ConsoleView view;
     private final StudentDao studentDao;
     private final GuardianDao guardianDao;
@@ -22,6 +23,7 @@ public final class MainMenuController {
     private final ResourceController resources;
     private final FinanceController finance;
     private final ReportController reports;
+    private final GradeCertificateController certificates;
 
     private final StudentRegistrationView registrationView;
     private final StudentRegistrationService registration;
@@ -30,7 +32,7 @@ public final class MainMenuController {
                               StudentRegistrationView registrationView, StudentRegistrationService registration,
                               EnrollmentController enrollment, AcademicController academic, TeacherController teachers,
                               ClubController clubs, ResourceController resources, FinanceController finance,
-                              ReportController reports) {
+                              ReportController reports, GradeCertificateController certificates) {
         this.view = view;
         this.studentDao = studentDao;
         this.guardianDao = guardianDao;
@@ -42,6 +44,7 @@ public final class MainMenuController {
         this.resources = resources;
         this.finance = finance;
         this.reports = reports;
+        this.certificates = certificates;
         this.registrationView = registrationView;
         this.registration = registration;
     }
@@ -49,7 +52,7 @@ public final class MainMenuController {
     public void run() {
         while (true) {
             view.showMainMenu();
-            int option = view.readMenuOption(1, EXIT_OPTION).orElse(EXIT_OPTION);
+            int option = view.readMenuOption(1, CERTIFICATE_OPTION).orElse(EXIT_OPTION);
             if (option == EXIT_OPTION) {
                 view.showGoodbye();
                 return;
@@ -69,7 +72,7 @@ public final class MainMenuController {
             } else if (option == 7) {
                 reports.run();
             } else {
-                view.showModulePending();
+                certificates.run();
             }
         }
     }

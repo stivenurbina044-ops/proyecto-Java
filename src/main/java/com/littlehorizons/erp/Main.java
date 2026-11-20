@@ -1,6 +1,10 @@
 package com.littlehorizons.erp;
 
 import com.littlehorizons.erp.controller.MainMenuController;
+import com.littlehorizons.erp.controller.GradeCertificateController;
+import com.littlehorizons.erp.dao.GradeCertificateDao;
+import com.littlehorizons.erp.service.GradeCertificateService;
+import com.littlehorizons.erp.view.GradeCertificateView;
 import com.littlehorizons.erp.controller.AcademicController;
 import com.littlehorizons.erp.dao.SubjectRegistrationDao;
 import com.littlehorizons.erp.dao.AcademicRecordDao;
@@ -79,8 +83,10 @@ public final class Main {
                     billing, summary);
             var reports = new ReportController(view, new ReportView(System.out),
                     new AcademicReportDao(), gradeDao, new AcademicStatisticsService());
+            var certificates = new GradeCertificateController(new GradeCertificateDao(),
+                    new GradeCertificateService(), new GradeCertificateView(input, System.out));
             new MainMenuController(view, studentDao, guardianDao, gradeDao,
-                    registrationView, registration, enrollment, academic, teachers, clubs, resources, finance, reports).run();
+                    registrationView, registration, enrollment, academic, teachers, clubs, resources, finance, reports, certificates).run();
         }
     }
 }
