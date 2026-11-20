@@ -7,3 +7,5 @@ config.txt
 /.idea/
 *.iml
 /out/
+
+/certificado_*_2025.txt

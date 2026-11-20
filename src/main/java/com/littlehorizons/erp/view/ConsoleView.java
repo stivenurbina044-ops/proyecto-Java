@@ -36,6 +36,7 @@ public final class ConsoleView {
                 6. Gestión de Recursos
                 7. Reportes y Estadísticas
                 8. Salir
+                9. TEST - Generar Certificado de Notas
                 """);
     }
 
