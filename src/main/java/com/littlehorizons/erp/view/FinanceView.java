@@ -33,7 +33,7 @@ public final class FinanceView {
                 3. Registrar pago
                 4. Consultar pagos de estudiante
                 5. Consultar pagos realizados por acudiente
-                6. Generar o consultar factura PDF de pago
+                6. Generar o consultar reporte de pago (.txt)
                 7. Configurar tarifa personalizada
                 8. Consultar tarifas de estudiante
                 9. Crear cobro con vencimiento
@@ -210,7 +210,7 @@ public final class FinanceView {
 
     public void showInvoice(Invoice invoice) {
         output.println("Factura: " + invoice.number());
-        output.println("PDF guardado en: " + invoice.filePath());
+        output.println("Reporte TXT guardado en: " + invoice.filePath());
     }
 
     public void showSuccess(String operation, int id) {

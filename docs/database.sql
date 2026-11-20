@@ -324,8 +324,8 @@ CREATE TABLE facturas (
     id_pago INT NOT NULL COMMENT 'Pago asociado a esta factura',
     fecha_emision DATE NOT NULL,
     cufe VARCHAR(100) COMMENT 'Código Único de Factura Electrónica (simulado)',
-    nombre_archivo_pdf VARCHAR(255) COMMENT 'Nombre del archivo PDF generado',
-    ruta_archivo VARCHAR(500) COMMENT 'Ruta completa donde se guardó el PDF',
+    nombre_archivo_pdf VARCHAR(255) COMMENT 'Nombre del archivo de factura generado',
+    ruta_archivo VARCHAR(500) COMMENT 'Ruta completa donde se guardó el archivo',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_pago) REFERENCES pagos(id_pago) ON DELETE CASCADE,
     INDEX idx_numero_factura (numero_factura),
@@ -338,7 +338,7 @@ CREATE TABLE documentos_factura (
     contenido_pdf LONGBLOB NOT NULL,
     fecha_archivo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_factura) REFERENCES facturas(id_factura) ON DELETE RESTRICT
-) ENGINE=InnoDB COMMENT='Copia inmutable del PDF emitido para recuperación';
+) ENGINE=InnoDB COMMENT='Copia del documento emitido para recuperación';
 
 -- 5. GESTIÓN DE RECURSOS
 CREATE TABLE categorias_recurso (

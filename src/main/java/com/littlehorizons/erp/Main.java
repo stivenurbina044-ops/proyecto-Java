@@ -34,7 +34,7 @@ import com.littlehorizons.erp.service.PaymentSummaryService;
 import com.littlehorizons.erp.view.StudentBillingView;
 import com.littlehorizons.erp.dao.InvoiceDao;
 import com.littlehorizons.erp.service.InvoiceService;
-import com.littlehorizons.erp.service.InvoicePdfWriter;
+import com.littlehorizons.erp.service.InvoiceTextWriter;
 import com.littlehorizons.erp.controller.FinanceController;
 import com.littlehorizons.erp.dao.PaymentConceptDao;
 import com.littlehorizons.erp.dao.PaymentDao;
@@ -79,7 +79,7 @@ public final class Main {
             var billing = new StudentBillingController(view, financeView, new StudentBillingView(input, System.out),
                     new PaymentConceptDao(), new PaymentDao(), new StudentBillingDao(), summary);
             var finance = new FinanceController(view, financeView,
-                    new PaymentConceptDao(), new PaymentDao(), new InvoiceService(new InvoiceDao(), new InvoicePdfWriter()),
+                    new PaymentConceptDao(), new PaymentDao(), new InvoiceService(new InvoiceDao(), new InvoiceTextWriter()),
                     billing, summary);
             var reports = new ReportController(view, new ReportView(System.out),
                     new AcademicReportDao(), gradeDao, new AcademicStatisticsService());

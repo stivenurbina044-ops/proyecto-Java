@@ -14,5 +14,5 @@ Sources retrieved on 2026-11-11:
 - [DataTooLongException.java](https://github.com/nayuki/QR-Code-generator/blob/master/java/src/main/java/io/nayuki/qrcodegen/DataTooLongException.java): Git blob `f1453effb23f412d1aad81f3cf241ddb0ec3ab03`.
 
 Only trailing whitespace was normalized; the QR implementation was not modified.
-The application uses `QrCode.encodeText` and draws the QR modules directly in the PDF.
+The previous PDF export used `QrCode.encodeText` to draw QR modules.
 The QR encodes academic invoice data; it does not represent validation by the DIAN.

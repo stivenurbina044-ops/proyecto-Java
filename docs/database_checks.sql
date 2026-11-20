@@ -132,7 +132,7 @@ LEFT JOIN acudientes a ON a.id_acudiente = p.id_acudiente
 JOIN conceptos_pago c ON c.id_concepto = p.id_concepto
 ORDER BY p.id_pago DESC;
 
--- Facturas PDF académicas asociadas a pagos.
+-- Facturas académicas asociadas a pagos.
 SELECT id_factura, numero_factura, id_pago, fecha_emision, cufe,
        nombre_archivo_pdf, ruta_archivo
 FROM facturas

@@ -111,7 +111,7 @@ public final class FinanceController {
             return;
         }
         while (true) {
-            view.showSelectionPrompt("pago para generar o recuperar su factura");
+            view.showSelectionPrompt("pago para generar o recuperar su reporte TXT");
             var id = console.readMenuOption(0, Integer.MAX_VALUE);
             if (id.isEmpty() || id.getAsInt() == 0) {
                 return;
@@ -131,7 +131,7 @@ public final class FinanceController {
             view.showInvoice(invoice);
         } catch (SQLException | IOException | RuntimeException exception) {
             ErrorLogger.warning("FinanceController: invoice generation failed for payment " + paymentId, exception);
-            console.showError("El pago " + paymentId + " ya está guardado, pero no se pudo obtener su PDF. "
+            console.showError("El pago " + paymentId + " ya está guardado, pero no se pudo obtener su reporte TXT. "
                     + "Usa la opción 6 para reintentar sin registrar otro pago. " + exception.getMessage());
         }
     }

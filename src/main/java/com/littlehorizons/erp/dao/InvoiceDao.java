@@ -26,12 +26,18 @@ public class InvoiceDao {
         }
     }
 
-    public void saveDocument(Connection connection, int invoiceId, byte[] pdf) throws SQLException {
-        // An issued document is immutable; retries must never replace its original bytes.
+    public void saveDocument(Connection connection, int invoiceId, byte[] document) throws SQLException {
+        // Keep existing text reports immutable and replace legacy PDF archives on conversion.
         try (var statement = connection.prepareStatement(
-                "INSERT INTO documentos_factura (id_factura, contenido_pdf) VALUES (?, ?) ON DUPLICATE KEY UPDATE id_factura = documentos_factura.id_factura")) {
+                """
+                INSERT INTO documentos_factura (id_factura, contenido_pdf) VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE contenido_pdf =
+                    IF(LEFT(documentos_factura.contenido_pdf, 5) = '%PDF-', ?,
+                       documentos_factura.contenido_pdf)
+                """)) {
             statement.setInt(1, invoiceId);
-            statement.setBytes(2, pdf);
+            statement.setBytes(2, document);
+            statement.setBytes(3, document);
             statement.executeUpdate();
         }
     }

@@ -23,11 +23,9 @@ Correo: **stivenurbina044@gmail.com**.
 | IntelliJ IDEA | Entorno utilizado para ejecución y pruebas manuales |
 | MySQL 8.0 o superior | Persistencia relacional con InnoDB |
 | MySQL Connector/J 26.10.0 | Driver JDBC declarado en pom.xml |
-| Biblioteca QR de Nayuki | Generación QR; código incluido bajo MIT |
 | DBeaver | Ejecución de scripts y verificación de la base |
 
-El PDF se escribe con la utilidad Java `PdfDocument`; no requiere un servicio
-externo. Las atribuciones del generador QR están en [third_party.md](docs/third_party.md).
+Los reportes de pago se guardan como archivos `.txt` con codificación UTF-8.
 
 ## Requerimientos previos
 
@@ -35,7 +33,6 @@ externo. Las atribuciones del generador QR están en [third_party.md](docs/third
 - **MySQL 8.0 o superior** y un usuario con permisos para la base.
 - Git para clonar; IntelliJ IDEA para la configuración descrita.
 - Acceso a Maven Central la primera vez que se resuelven las dependencias.
-- Python 3 y `pdftotext` son opcionales para las comprobaciones adicionales del PDF.
 
 ## Configuración de la base de datos
 
@@ -157,7 +154,7 @@ src/main/java/
 │   ├── controller/  Coordinación de acciones y navegación
 │   ├── dao/         Consultas y transacciones JDBC
 │   ├── service/     Cálculos y coordinación de operaciones
-│   ├── util/        Conexión, logs y escritura PDF
+│   ├── util/        Conexión, logs y validaciones
 │   └── Main.java    Construcción e inyección de colaboradores
 └── io/nayuki/qrcodegen/  Biblioteca QR de terceros
 src/main/resources/      Configuración ficticia del colegio
@@ -178,9 +175,9 @@ está en español y los nombres SQL conservan los del esquema del proyecto.
 | --- | --- |
 | Responsabilidad única | FinanceView presenta; PaymentSummaryService calcula totales; PaymentDao persiste |
 | Abierto/cerrado | InvoiceService recibe InvoiceDocumentWriter; puede sustituirse el renderizador sin editar la coordinación de generación |
-| Sustitución de Liskov | InvoicePdfWriter implementa el contrato render: recibe datos y devuelve bytes sin persistir archivos ni registros |
+| Sustitución de Liskov | InvoiceTextWriter implementa el contrato render: recibe datos y devuelve bytes sin persistir archivos ni registros |
 | Segregación de interfaces | InvoiceDocumentWriter tiene una sola operación, sin exigir al renderizador acceso JDBC o lectura de consola |
-| Inversión de dependencias | InvoiceService depende del contrato de renderizado y Main proporciona InvoicePdfWriter; los DAO siguen siendo colaboradores concretos |
+| Inversión de dependencias | InvoiceService depende del contrato de renderizado y Main proporciona InvoiceTextWriter; los DAO siguen siendo colaboradores concretos |
 
 La abstracción del renderizador permite cambiar la generación del documento
 sin modificar la coordinación de la factura. Los DAO se inyectan como clases
@@ -193,12 +190,8 @@ concretas.
   `FinanceController` coordine el formulario y su confirmación sin conocer las
   consultas ni la estructura de las tablas.
 - **Estrategia de renderizado:** InvoiceDocumentWriter permite inyectar la forma de
-  producir los bytes de la factura; InvoicePdfWriter es la implementación actual.
+  producir los bytes de la factura; InvoiceTextWriter es la implementación actual.
 - **Inyección por constructor:** Main conecta controladores, vistas, DAO y servicios.
-
-La clase de 815 líneas `io.nayuki.qrcodegen.QrCode` forma parte de la biblioteca QR
-de Nayuki. `InvoicePdfWriter` usa su API para dibujar el código en la factura.
-Consulta la atribución en [docs/third_party.md](docs/third_party.md).
 
 `DatabaseConnection.open()` crea una conexión JDBC para cada operación. Los DAO
 cierran la conexión al salir del bloque try-with-resources.
@@ -231,7 +224,7 @@ Los recursos dados de baja conservan su historial y no se reactivan.
 Cada módulo se abre desde el menú principal. Los formularios indican cómo
 cancelar y los selectores permiten volver con 0. Registrar un pago no reduce
 el saldo de un cobro: debe aplicarse desde Gestión Financiera, opción 11.
-La opción 6 permite consultar o recuperar la factura de un pago existente.
+La opción 6 permite generar o recuperar el reporte TXT de un pago existente.
 
 ## Recorrido de prueba y sustentación
 
@@ -248,9 +241,9 @@ La opción 6 permite consultar o recuperar la factura de un pago existente.
    bloquea las filas y comprueba estudiante, concepto, año, período y saldo
    antes de confirmar el abono. Quedarán 250.000 COP pendientes en octubre.
    Con `1026016` puedes consultar un cobro de septiembre con saldo de 50.000 COP.
-4. Desde la opción 6 de Finanzas, genera la factura de uno de esos pagos.
+4. Desde la opción 6 de Finanzas, genera el reporte TXT de uno de esos pagos.
    `InvoiceService` coordina la emisión y `InvoiceDocumentWriter` define el
-   contrato de renderizado. La aplicación guarda la factura y archiva su PDF
+   contrato de renderizado. La aplicación guarda la factura y archiva su reporte TXT
    al emitirlo. Las dos tablas de facturación se llenan durante este flujo.
 5. En Recursos, revisa el historial de préstamos y devuelve `LHSEED-R001`.
    El DAO cierra el préstamo y actualiza la disponibilidad en una transacción.
@@ -263,7 +256,7 @@ Los controladores capturan SQLException, muestran un mensaje y llaman a
 `ErrorLogger.log`. El archivo `error_log.txt` se crea en el directorio de ejecución,
 con fecha, nivel, contexto y traza de la excepción. `ERROR` indica un fallo de
 operación. Finanzas registra `WARNING` cuando el pago está guardado y se puede
-reintentar la obtención del PDF. Las entradas se agregan al final del archivo,
+reintentar la obtención del reporte TXT. Las entradas se agregan al final del archivo,
 que está excluido de Git. Si no se puede escribir, se avisa por stderr y se permite continuar.
 Las entradas inválidas se reintentan y las reglas de dominio usan excepciones
 controladas. Los formularios permiten cancelar según los mensajes de cada menú.
@@ -280,15 +273,13 @@ los préstamos, aplicaciones y otros flujos emplean bloqueos de filas.
   [003_invoice_documents.sql](docs/migrations/003_invoice_documents.sql) antes de
   usar la facturación actualizada. Crea el archivo de documentos sin cambiar pagos.
   Las instalaciones nuevas ya lo incluyen en `database.sql`.
-- Cada factura nueva guarda una copia inmutable de su PDF en MySQL. Si desaparece
-  el archivo local, la opción 6 restaura los mismos bytes, CUFE y número aunque
-  cambie la configuración del colegio. Las facturas antiguas se archivan al
-  consultarlas si su PDF todavía existe: consulta cada una antes de borrar archivos.
-  Si una factura antigua ya no tiene PDF ni copia en MySQL, su reconstrucción requiere
-  el NIT original mediante `INVOICE_CONFIG_PATH` y toma los demás datos actuales;
-  no puede garantizar una reproducción exacta de su contenido original.
+- MySQL archiva una copia del reporte TXT. Si desaparece el archivo local, la
+  opción 6 restaura el texto archivado con los mismos datos, número y CUFE.
+  Al consultar una factura emitida en PDF, se genera el TXT con los datos
+  actuales del pago y del colegio, se conservan el número y el CUFE, y la copia
+  en MySQL pasa a ser el TXT. El PDF que ya estaba en disco se conserva.
 - Los cambios del lote SQL se aplican a instalaciones nuevas; no actualizan datos existentes.
-- El lote se carga por SQL: sus pagos no generan PDF hasta solicitarlos en consola.
+- El lote se carga por SQL: sus pagos no generan reportes TXT hasta solicitarlos en consola.
 - La aplicación permite registrar y consultar las entidades principales, pero
   no ofrece edición y eliminación general para todas ellas.
 - No hay autenticación ni deshacer aplicaciones de pagos. Se conserva historial

@@ -17,6 +17,8 @@ import java.util.Locale;
 import java.util.UUID;
 
 public final class InvoiceService {
+    private static final byte[] TEXT_HEADER = (InvoiceTextWriter.TITLE + "\n").getBytes(StandardCharsets.UTF_8);
+
     private final InvoiceDao invoiceDao;
     private final InvoiceDocumentWriter writer;
 
@@ -48,24 +50,25 @@ public final class InvoiceService {
                         : String.format(Locale.ROOT, "LH-%06d", id);
                 LocalDate date = existing.isPresent() ? existing.get().issueDate() : payment.currentDate();
                 var savedDocument = existing.isPresent() ? invoiceDao.findDocument(connection, id) : java.util.Optional.<byte[]>empty();
-                String cufe = savedDocument.isPresent() ? existing.get().cufe() : simulatedCufe(number, school.taxId(), date);
-                if (savedDocument.isEmpty() && existing.isPresent() && existing.get().cufe() != null && !cufe.equals(existing.get().cufe())) {
-                    throw new IOException("La configuración del NIT no coincide con el CUFE guardado. Restaura la configuración original; esta factura antigua aún no tiene una copia PDF archivada.");
-                }
-                String filename = String.format(Locale.ROOT, "factura_%06d_%s.pdf", id, UUID.randomUUID());
+                String cufe = existing.isPresent() && existing.get().cufe() != null
+                        ? existing.get().cufe() : simulatedCufe(number, school.taxId(), date);
+                String filename = String.format(Locale.ROOT, "factura_%06d_%s.txt", id, UUID.randomUUID());
                 Path destination = school.outputDirectory().resolve(filename);
                 if (destination.toString().length() > 500) {
-                    throw new IOException("La ruta del PDF supera los 500 caracteres admitidos en la base de datos.");
+                    throw new IOException("La ruta del reporte TXT supera los 500 caracteres admitidos en la base de datos.");
                 }
                 Invoice invoice = new Invoice(id, paymentId, number, date, cufe, filename, destination.toString());
-                byte[] pdf = savedDocument.isPresent() ? savedDocument.get() : writer.render(invoice, payment, school);
-                if (pdf.length < 5 || !new String(pdf, 0, 5, StandardCharsets.US_ASCII).equals("%PDF-")) {
-                    throw new IOException("El documento archivado o generado no es un PDF válido.");
+                byte[] document = savedDocument.filter(InvoiceService::isTextReport).orElse(null);
+                if (document == null) {
+                    document = writer.render(invoice, payment, school);
+                    if (!isTextReport(document)) {
+                        throw new IOException("El documento generado no es un reporte TXT válido.");
+                    }
+                    invoiceDao.saveDocument(connection, id, document);
                 }
-                invoiceDao.saveDocument(connection, id, pdf);
                 Files.createDirectories(school.outputDirectory());
                 createdFile = Files.createTempFile(school.outputDirectory(), ".invoice-", ".tmp");
-                Files.write(createdFile, pdf);
+                Files.write(createdFile, document);
                 Files.move(createdFile, destination);
                 createdFile = destination;
                 invoiceDao.complete(connection, invoice);
@@ -90,7 +93,8 @@ public final class InvoiceService {
     }
 
     private boolean isReady(Invoice invoice, Path outputDirectory) throws IOException {
-        if (invoice.filePath() == null || invoice.fileName() == null || invoice.cufe() == null) {
+        if (invoice.filePath() == null || invoice.fileName() == null || invoice.cufe() == null
+                || !invoice.fileName().endsWith(".txt")) {
             return false;
         }
         Path path = Path.of(invoice.filePath()).toAbsolutePath().normalize();
@@ -101,8 +105,13 @@ public final class InvoiceService {
             return false;
         }
         try (var stream = Files.newInputStream(path)) {
-            return new String(stream.readNBytes(5), StandardCharsets.US_ASCII).equals("%PDF-");
+            return java.util.Arrays.equals(stream.readNBytes(TEXT_HEADER.length), TEXT_HEADER);
         }
+    }
+
+    private static boolean isTextReport(byte[] document) {
+        return document.length >= TEXT_HEADER.length
+                && java.util.Arrays.equals(document, 0, TEXT_HEADER.length, TEXT_HEADER, 0, TEXT_HEADER.length);
     }
 
     public static String simulatedCufe(String number, String taxId, LocalDate date) {
