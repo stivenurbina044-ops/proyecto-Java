@@ -314,3 +314,9 @@ La aplicación crea la carpeta cuando hace falta y muestra la ruta completa. Par
 La tabla muestra los períodos I a IV. La nota de Final, cuando existe, entra
 en el promedio de su materia. El promedio general usa los promedios por
 materia mostrados en el certificado.
+
+Para probar el filtro por año después de cargar el anexo, ejecuta
+[grade_certificate_test_years.sql](docs/grade_certificate_test_years.sql)
+en el esquema de pruebas `erp_little_horizons_check`. Para el estudiante 3,
+los años 2024 y 2026 deben mostrar dos materias cada uno y promedios generales
+de 3.6 y 4.6, respectivamente. El certificado de 2025 usa las notas del anexo.
