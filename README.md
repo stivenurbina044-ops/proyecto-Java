@@ -308,8 +308,8 @@ Repositorio: [proyecto-Java](https://github.com/stivenurbina044-ops/proyecto-Jav
 Ejecuta la aplicación con la raíz del proyecto como directorio de trabajo.
 En el menú principal, elige **9. TEST - Generar Certificado de Notas** e ingresa
 el ID interno del estudiante y el año académico. El archivo
-`certificado_<id>_<año>.txt` queda en la raíz y la consola muestra la ruta
-completa. Para la prueba del examen, ingresa `2025`.
+`certificado_<id>_<año>.txt` queda en la carpeta `certificados/` del proyecto.
+La aplicación crea la carpeta cuando hace falta y muestra la ruta completa. Para la prueba del examen, ingresa `2025`.
 
 La tabla muestra los períodos I a IV. La nota de Final, cuando existe, entra
 en el promedio de su materia. El promedio general usa los promedios por

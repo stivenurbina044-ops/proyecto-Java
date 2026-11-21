@@ -40,7 +40,7 @@ public final class GradeCertificateController {
             } else {
                 var student = result.get();
                 view.showProgress(year);
-                Path file = service.write(Path.of(""), id, year, student, LocalDate.now());
+                Path file = service.write(Path.of("certificados"), id, year, student, LocalDate.now());
                 view.showSuccess(student.name(), file, year);
             }
         } catch (SQLException exception) {

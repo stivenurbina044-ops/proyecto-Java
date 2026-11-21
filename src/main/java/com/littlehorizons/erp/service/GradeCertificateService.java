@@ -30,6 +30,7 @@ public final class GradeCertificateService {
             throw new IllegalArgumentException("El certificado requiere al menos una nota.");
         }
         Path destination = directory.toAbsolutePath().normalize().resolve("certificado_" + id + "_" + year + ".txt");
+        Files.createDirectories(destination.getParent());
         Path temporary = Files.createTempFile(destination.getParent(), ".certificado-", ".tmp");
         try {
             Files.writeString(temporary, format(year, student, issueDate), StandardCharsets.UTF_8);

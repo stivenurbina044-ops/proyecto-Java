@@ -69,7 +69,7 @@ public final class GradeCertificateView {
         output.printf("""
                 %s
                 ERROR: No se pudo crear el archivo del certificado.
-                Verifique los permisos de escritura en la carpeta del proyecto.
+                Verifique los permisos de escritura para la carpeta certificados.
                 %s
                 """, RULE, RULE);
     }
