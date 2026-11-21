@@ -9,10 +9,12 @@ public final class GradeCertificateView {
     private static final String RULE = "=".repeat(66);
     private final Scanner input;
     private final PrintStream output;
+    private final ConsoleView console;
 
-    public GradeCertificateView(Scanner input, PrintStream output) {
+    public GradeCertificateView(Scanner input, PrintStream output, ConsoleView console) {
         this.input = input;
         this.output = output;
+        this.console = console;
     }
 
     public OptionalInt readStudentId() {
@@ -34,6 +36,10 @@ public final class GradeCertificateView {
             }
             showError("Debe ingresar un número válido.");
         }
+    }
+
+    public OptionalInt readAcademicYear() {
+        return console.readAcademicYear();
     }
 
     public void showError(String message) {

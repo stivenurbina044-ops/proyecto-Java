@@ -19,21 +19,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public final class GradeCertificateService {
-    public static final int YEAR = 2025;
     private static final String RULE = "=".repeat(66);
     private static final String TABLE_RULE = "-".repeat(77);
     private static final String ROW = "%-33s%-8s%-8s%-9s%-9s%s%n";
     private static final List<String> PERIODS = List.of("I", "II", "III", "IV");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
-    public Path write(Path directory, int id, StudentGrades student, LocalDate issueDate) throws IOException {
+    public Path write(Path directory, int id, int year, StudentGrades student, LocalDate issueDate) throws IOException {
         if (student.marks().isEmpty()) {
             throw new IllegalArgumentException("El certificado requiere al menos una nota.");
         }
-        Path destination = directory.toAbsolutePath().normalize().resolve("certificado_" + id + "_" + YEAR + ".txt");
+        Path destination = directory.toAbsolutePath().normalize().resolve("certificado_" + id + "_" + year + ".txt");
         Path temporary = Files.createTempFile(destination.getParent(), ".certificado-", ".tmp");
         try {
-            Files.writeString(temporary, format(student, issueDate), StandardCharsets.UTF_8);
+            Files.writeString(temporary, format(year, student, issueDate), StandardCharsets.UTF_8);
             try {
                 Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException exception) {
@@ -45,7 +44,7 @@ public final class GradeCertificateService {
         return destination;
     }
 
-    private String format(StudentGrades student, LocalDate issueDate) {
+    private String format(int year, StudentGrades student, LocalDate issueDate) {
         Map<String, List<Mark>> subjects = student.marks().stream()
                 .collect(Collectors.groupingBy(Mark::subjectCode, LinkedHashMap::new, Collectors.toList()));
         StringBuilder text = new StringBuilder("""
@@ -64,7 +63,7 @@ public final class GradeCertificateService {
                                         REGISTRO DE CALIFICACIONES
                 %s
 
-                """.formatted(RULE, YEAR, RULE, TABLE_RULE, student.name(), student.documentType(),
+                """.formatted(RULE, year, RULE, TABLE_RULE, student.name(), student.documentType(),
                 student.document(), student.grade() == null ? "Sin matrícula registrada" : student.grade(), RULE, RULE));
         text.append(String.format(Locale.ROOT, ROW, "Materia", "Per I", "Per II", "Per III", "Per IV", "Promedio"));
         text.append(TABLE_RULE).append(System.lineSeparator());

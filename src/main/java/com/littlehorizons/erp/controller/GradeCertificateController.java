@@ -26,7 +26,11 @@ public final class GradeCertificateController {
             return;
         }
         int id = selection.getAsInt();
-        int year = GradeCertificateService.YEAR;
+        var academicYear = view.readAcademicYear();
+        if (academicYear.isEmpty()) {
+            return;
+        }
+        int year = academicYear.getAsInt();
         try {
             var result = dao.find(id, year);
             if (result.isEmpty()) {
@@ -36,7 +40,7 @@ public final class GradeCertificateController {
             } else {
                 var student = result.get();
                 view.showProgress(year);
-                Path file = service.write(Path.of(""), id, student, LocalDate.now());
+                Path file = service.write(Path.of(""), id, year, student, LocalDate.now());
                 view.showSuccess(student.name(), file, year);
             }
         } catch (SQLException exception) {

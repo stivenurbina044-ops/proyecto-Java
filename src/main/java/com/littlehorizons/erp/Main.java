@@ -84,7 +84,7 @@ public final class Main {
             var reports = new ReportController(view, new ReportView(System.out),
                     new AcademicReportDao(), gradeDao, new AcademicStatisticsService());
             var certificates = new GradeCertificateController(new GradeCertificateDao(),
-                    new GradeCertificateService(), new GradeCertificateView(input, System.out));
+                    new GradeCertificateService(), new GradeCertificateView(input, System.out, view));
             new MainMenuController(view, studentDao, guardianDao, gradeDao,
                     registrationView, registration, enrollment, academic, teachers, clubs, resources, finance, reports, certificates).run();
         }

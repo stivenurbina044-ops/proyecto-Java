@@ -303,12 +303,13 @@ Correo: **stivenurbina044@gmail.com**.
 
 Repositorio: [proyecto-Java](https://github.com/stivenurbina044-ops/proyecto-Java).
 
-## Certificado de notas de 2025
+## Certificado de notas
 
 Ejecuta la aplicación con la raíz del proyecto como directorio de trabajo.
 En el menú principal, elige **9. TEST - Generar Certificado de Notas** e ingresa
-el ID interno del estudiante. El archivo `certificado_<id>_2025.txt` queda en
-la raíz y la consola muestra la ruta completa.
+el ID interno del estudiante y el año académico. El archivo
+`certificado_<id>_<año>.txt` queda en la raíz y la consola muestra la ruta
+completa. Para la prueba del examen, ingresa `2025`.
 
 La tabla muestra los períodos I a IV. La nota de Final, cuando existe, entra
 en el promedio de su materia. El promedio general usa los promedios por
